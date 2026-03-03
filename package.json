@@ -1,0 +1,15 @@
+{
+  "name": "mcom_links",
+  "version": "1.0.0",
+  "description": "Mcom Links Monorepo",
+  "private": true,
+  "packageManager": "pnpm@9.15.2",
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint"
+  },
+  "devDependencies": {
+    "turbo": "latest"
+  }
+}
