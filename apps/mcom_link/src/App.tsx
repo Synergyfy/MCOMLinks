@@ -34,7 +34,7 @@ function App() {
     },
     {
       title: "Seasonal Automation",
-      desc: "Set your dates and relax. The system automatically switches between Winter, Spring, and Summer campaigns.",
+      desc: "Set your date and relax. The system automatically switches between Winter, Spring, and Summer campaigns.",
       icon: <CalendarIcon />
     },
     {
