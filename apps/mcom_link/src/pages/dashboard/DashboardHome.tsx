@@ -1,0 +1,118 @@
+import { Link } from 'react-router-dom'
+import { mockMetrics, mockBusiness } from '../../mock/business'
+import { mockOffers } from '../../mock/offers'
+import DashboardLayout from '../../components/DashboardLayout'
+
+export default function DashboardHome() {
+    const liveOffer = mockOffers.find(o => o.businessName === mockBusiness.name && o.status === 'approved')
+
+    return (
+        <DashboardLayout title="Dashboard Overview">
+            {/* 1. Metrics Grid — PRD STEP 3 */}
+            <div className="db-stats-grid">
+                <div className="db-stat-card">
+                    <div className="db-stat-label">Total Scans (Month)</div>
+                    <div className="db-stat-value">{mockMetrics.totalScans.toLocaleString()}</div>
+                    <div className="db-stat-trend db-trend-up">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>
+                        12% vs last month
+                    </div>
+                </div>
+
+                <div className="db-stat-card">
+                    <div className="db-stat-label">Total Claims (Month)</div>
+                    <div className="db-stat-value">{mockMetrics.totalClaims.toLocaleString()}</div>
+                    <div className="db-stat-trend db-trend-up">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>
+                        8.4% vs last month
+                    </div>
+                </div>
+
+                <div className="db-stat-card">
+                    <div className="db-stat-label">Avg. Conversion Rate</div>
+                    <div className="db-stat-value">{mockMetrics.conversionRate}%</div>
+                    <div className="db-stat-trend db-trend-down">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7" /><polyline points="16 17 22 17 22 11" /></svg>
+                        2.1% vs last month
+                    </div>
+                </div>
+
+                <div className="db-stat-card">
+                    <div className="db-stat-label">Active Offers</div>
+                    <div className="db-stat-value">{mockMetrics.activeOffers}</div>
+                    <div className="db-stat-trend" style={{ color: '#64748b' }}>
+                        {mockMetrics.daysRemaining} days remaining
+                    </div>
+                </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
+                {/* 2. Live Offer Preview — PRD STEP 5 */}
+                <div className="db-card">
+                    <div className="db-card-header">
+                        <h2 className="db-card-title">Current Live Offer</h2>
+                        <Link to="/dashboard/offers" className="db-btn db-btn-ghost">View All</Link>
+                    </div>
+
+                    {liveOffer ? (
+                        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+                            <img
+                                src={liveOffer.imageUrl}
+                                alt={liveOffer.headline}
+                                style={{ width: '180px', height: '120px', objectFit: 'cover', borderRadius: '0.75rem' }}
+                            />
+                            <div style={{ flex: 1 }}>
+                                <div className="db-badge db-badge-approved" style={{ marginBottom: '0.5rem', display: 'inline-block' }}>Live</div>
+                                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem', fontWeight: 800 }}>{liveOffer.headline}</h3>
+                                <p style={{ margin: '0 0 1rem 0', color: '#64748b', fontSize: '0.9rem', lineHeight: '1.5' }}>{liveOffer.description}</p>
+                                <div style={{ display: 'flex', gap: '1rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
+                                    <div>
+                                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Scans</div>
+                                        <div style={{ fontWeight: 800 }}>{liveOffer.performance.scans}</div>
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Claims</div>
+                                        <div style={{ fontWeight: 800 }}>{liveOffer.performance.claims}</div>
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Expires</div>
+                                        <div style={{ fontWeight: 800 }}>{new Date(liveOffer.endDate).toLocaleDateString()}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div style={{ padding: '2rem', textAlign: 'center', background: '#f8fafc', borderRadius: '0.75rem' }}>
+                            <p style={{ color: '#64748b', fontWeight: 600 }}>No live offers currently. Submit a new one to get started!</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* 3. Quick Actions — PRD STEP 3 */}
+                <div className="db-card">
+                    <h2 className="db-card-title" style={{ marginBottom: '1.5rem' }}>Quick Actions</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <Link to="/dashboard/offers" className="db-btn db-btn-primary" style={{ justifyContent: 'center' }}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                            Create New Offer
+                        </Link>
+                        <Link to="/dashboard/analytics" className="db-btn db-btn-ghost" style={{ justifyContent: 'center' }}>
+                            View Performance
+                        </Link>
+                        <Link to="/dashboard/support" className="db-btn db-btn-ghost" style={{ justifyContent: 'center' }}>
+                            Contact James (Agent)
+                        </Link>
+                    </div>
+
+                    <div style={{ marginTop: '2rem', padding: '1rem', background: 'rgba(37, 99, 235, 0.04)', borderRadius: '0.75rem', border: '1px solid rgba(37, 99, 235, 0.1)' }}>
+                        <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', fontWeight: 700 }}>Plan: {mockBusiness.planType} Member</h4>
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', lineHeight: '1.4' }}>
+                            You are on the {mockBusiness.planType} plan.
+                            {mockBusiness.planType === 'Premium' ? ' Enjoy priority rotation and advanced analytics.' : ' Upgrade to Premium for 3x more visibility.'}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </DashboardLayout>
+    )
+}

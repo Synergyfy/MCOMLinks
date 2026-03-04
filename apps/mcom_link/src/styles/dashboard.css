@@ -1,0 +1,505 @@
+/* ============================================
+   MCOMLINKS — DASHBOARD STYLES
+   Business Owner Dashboard
+   Brand: Blue #2563eb, White #fff, Black #0a0a0a
+   ============================================ */
+
+:root {
+    --sidebar-width: 280px;
+    --header-height: 70px;
+    --bg-main: #f8fafc;
+    --border-light: rgba(0, 0, 0, 0.06);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* ---------- LAYOUT ---------- */
+.db-container {
+    display: flex;
+    min-height: 100vh;
+    background-color: var(--bg-main);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: #0a0a0a;
+}
+
+/* ---------- SIDEBAR ---------- */
+.db-sidebar {
+    width: var(--sidebar-width);
+    background: #ffffff;
+    border-right: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+}
+
+.db-sidebar-header {
+    height: var(--header-height);
+    display: flex;
+    align-items: center;
+    padding: 0 2rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.db-logo {
+    font-weight: 800;
+    font-size: 1.25rem;
+    letter-spacing: -0.5px;
+}
+
+.db-logo span {
+    color: #2563eb;
+    font-weight: 900;
+}
+
+.db-nav {
+    flex: 1;
+    padding: 1.5rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.db-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border-radius: 0.75rem;
+    color: #64748b;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.db-nav-link:hover {
+    background: rgba(37, 99, 235, 0.04);
+    color: #2563eb;
+}
+
+.db-nav-link.active {
+    background: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.db-nav-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.db-sidebar-footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-light);
+}
+
+.db-user-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: #f1f5f9;
+    border-radius: 0.75rem;
+}
+
+.db-user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.db-user-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.db-user-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.db-user-role {
+    font-size: 0.7rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+/* ---------- MAIN CONTENT ---------- */
+.db-main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    display: flex;
+    flex-direction: column;
+}
+
+.db-header {
+    height: var(--header-height);
+    background: #ffffff;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 90;
+}
+
+.db-page-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+}
+
+.db-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.db-content {
+    padding: 2.5rem;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* ---------- STATS GRID ---------- */
+.db-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.db-stat-card {
+    background: #ffffff;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+}
+
+.db-stat-label {
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.db-stat-value {
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: #0a0a0a;
+    letter-spacing: -0.5px;
+}
+
+.db-stat-trend {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.db-trend-up {
+    color: #10b981;
+}
+
+.db-trend-down {
+    color: #f43f5e;
+}
+
+/* ---------- COMPONENTS ---------- */
+.db-card {
+    background: #ffffff;
+    border-radius: 1rem;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+    padding: 1.5rem;
+}
+
+.db-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.db-card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+/* ---------- BUTTONS ---------- */
+.db-btn {
+    padding: 0.65rem 1.25rem;
+    border-radius: 0.75rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+.db-btn-primary {
+    background: #2563eb;
+    color: #ffffff;
+}
+
+.db-btn-primary:hover {
+    background: #1d4ed8;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.db-btn-ghost {
+    background: transparent;
+    color: #64748b;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.db-btn-ghost:hover {
+    background: #f1f5f9;
+    color: #0a0a0a;
+}
+
+/* ---------- TABLES / LISTS ---------- */
+.db-table-wrapper {
+    overflow-x: auto;
+}
+
+.db-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.db-table th {
+    text-align: left;
+    padding: 1rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.db-table td {
+    padding: 1rem;
+    font-size: 0.9rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+/* ---------- STATUS BADGES ---------- */
+.db-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 2rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.db-badge-approved {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+}
+
+.db-badge-draft {
+    background: rgba(100, 116, 139, 0.1);
+    color: #475569;
+}
+
+.db-badge-submitted {
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+}
+
+.db-badge-rejected {
+    background: rgba(244, 63, 94, 0.1);
+    color: #e11d48;
+}
+
+.db-badge-expired {
+    background: rgba(0, 0, 0, 0.05);
+    color: #000;
+}
+
+/* ---------- MODALS ---------- */
+.db-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 10, 10, 0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 2rem;
+}
+
+.db-modal {
+    background: #ffffff;
+    width: 100%;
+    max-width: 900px;
+    border-radius: 1.25rem;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+}
+
+.db-modal-header {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.db-modal-content {
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.db-modal-footer {
+    padding: 1.5rem 2rem;
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.db-btn-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #64748b;
+}
+
+/* ---------- FORMS ---------- */
+.db-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.db-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #0a0a0a;
+}
+
+.db-input {
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.db-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.db-help {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+/* ---------- ANIMATIONS ---------- */
+@keyframes dbFadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: dbFadeInUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* ---------- WIZARD SPECIFIC ---------- */
+.db-wizard-step {
+    transition: all 0.4s ease;
+}
+
+.db-plan-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.db-plan-card:hover {
+    border-color: #3b82f6 !important;
+    transform: translateY(-4px);
+    box-shadow: 0 10px 30px rgba(37, 99, 235, 0.1);
+}
+
+.db-plan-card.active {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(59, 130, 246, 0.02)) !important;
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 1024px) {
+    .db-sidebar {
+        width: 80px;
+        padding: 0 0.5rem;
+    }
+
+    .db-sidebar-header,
+    .db-user-info,
+    .db-nav-link span {
+        display: none;
+    }
+
+    .db-logo {
+        font-size: 1rem;
+    }
+
+    .db-main {
+        margin-left: 80px;
+    }
+
+    .db-nav-link {
+        justify-content: center;
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .db-header {
+        padding: 0 1.5rem;
+    }
+
+    .db-content {
+        padding: 1.5rem;
+    }
+}
