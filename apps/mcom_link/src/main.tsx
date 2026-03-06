@@ -6,6 +6,9 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
 import './styles/storefront.css'
 
+// PWA Install Prompt
+import PWAInstallPrompt from './components/PWAInstallPrompt.tsx'
+
 // Pages
 import App from './App.tsx' // The homepage/marketing site
 import StorefrontPage from './pages/StorefrontPage.tsx'
@@ -80,6 +83,9 @@ createRoot(document.getElementById('root')!).render(
         {/* Global Fallback Route */}
         <Route path="*" element={<FallbackPage />} />
       </Routes>
+
+      {/* PWA Install Prompt — appears globally on all pages */}
+      <PWAInstallPrompt />
     </BrowserRouter>
   </StrictMode>,
 )
