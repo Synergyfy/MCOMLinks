@@ -2,7 +2,7 @@
 // Logs every frontfacing interaction in the background
 // In production, this would send to an analytics backend
 
-export type EventType = 'scan' | 'offer_view' | 'cta_click' | 'form_submit' | 'redemption' | 'redirect'
+export type EventType = 'scan' | 'offer_view' | 'cta_click' | 'form_submit' | 'redemption' | 'redirect' | 'directions' | 'save_to_phone' | 'call_click' | 'whatsapp_click' | 'quick_claim' | 'engagement_time'
 
 export interface TrackingEvent {
     id: string
@@ -98,6 +98,12 @@ export function getEventCounts(): Record<EventType, number> {
         form_submit: 0,
         redemption: 0,
         redirect: 0,
+        directions: 0,
+        save_to_phone: 0,
+        call_click: 0,
+        whatsapp_click: 0,
+        quick_claim: 0,
+        engagement_time: 0
     }
 
     eventLog.forEach((event) => {

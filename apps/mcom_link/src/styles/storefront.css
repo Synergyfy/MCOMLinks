@@ -213,6 +213,143 @@
     margin: 0;
 }
 
+/* --- NEW ENGAGEMENT STYLES --- */
+.sf-business-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.sf-live-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #10b981;
+    text-transform: uppercase;
+    background: rgba(16, 185, 129, 0.08);
+    padding: 0.2rem 0.6rem;
+    border-radius: 100px;
+}
+
+.sf-dot {
+    width: 6px;
+    height: 6px;
+    background: #10b981;
+    border-radius: 50%;
+    box-shadow: 0 0 4px #10b981;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.4;
+        transform: scale(1.2);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.sf-intent-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin: 1.5rem 0;
+}
+
+.sf-intent-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.75rem 0.5rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.85rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #475569;
+    color: #0f172a;
+    transition: all 0.2s ease;
+}
+
+.sf-intent-btn:hover {
+    border-color: #2563eb;
+    background: rgba(37, 99, 235, 0.04);
+    transform: translateY(-2px);
+}
+
+.sf-intent-icon {
+    font-size: 1.25rem;
+}
+
+.sf-incentive-bridge {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+    border: 1px solid #dbeafe;
+    border-radius: 1rem;
+}
+
+.sf-incentive-text {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #2563eb;
+    margin-bottom: 0.75rem;
+    text-align: center;
+}
+
+.sf-input-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.sf-quick-input {
+    flex: 1;
+    padding: 0.6rem 0.85rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.65rem;
+    font-size: 0.85rem;
+    outline: none;
+    font-family: inherit;
+}
+
+.sf-quick-input:focus {
+    border-color: #2563eb;
+}
+
+.sf-quick-btn {
+    padding: 0.6rem 1rem;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.sf-claimed-success {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #10b981;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.5rem;
+}
+
 /* ---------- CTA BUTTON ---------- */
 .sf-cta-section {
     padding: 0;

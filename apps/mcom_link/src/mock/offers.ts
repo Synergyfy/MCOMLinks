@@ -32,6 +32,22 @@ export interface Offer {
     }
     rejectionReason?: string
     claimFields?: ClaimField[]
+    activities?: EngagementActivity[]
+}
+
+export interface EngagementActivity {
+    id: string
+    visitorId: string           // e.g. "Profile #A7B2"
+    type: 'view' | 'click' | 'directions' | 'claim' | 'save'
+    timestamp: string          // ISO string
+    duration?: number          // seconds spent viewing
+    location?: string          // e.g. "High Street Central Hub"
+    device?: string            // e.g. "iPhone 15, Safari"
+    interestScore: 'low' | 'medium' | 'high' | 'verified'
+    verifiedData?: {           // Only if they opted in
+        email?: string
+        phone?: string
+    }
 }
 
 export interface ClaimField {

@@ -3,11 +3,43 @@ import { mockOffers, type Offer } from '../../mock/offers'
 import { mockBusiness } from '../../mock/business'
 import DashboardLayout from '../../components/DashboardLayout'
 import OfferCard from '../../components/OfferCard'
+import { type EngagementActivity } from '../../mock/offers'
+
+// Mock generator for engagement activities
+const generateMockActivities = (offerId: string): EngagementActivity[] => {
+    const types: EngagementActivity['type'][] = ['view', 'click', 'directions', 'claim', 'save']
+    const scores: EngagementActivity['interestScore'][] = ['low', 'medium', 'high', 'verified']
+    const profiles = ['#A7B2', '#99F1', '#B2D9', '#E4R5', '#X9Q0', 'sarah@email.com', 'mike@domain.co.uk']
+
+    return Array.from({ length: 8 }, (_, i) => {
+        const type = types[Math.floor(Math.random() * types.length)]
+        const isVerified = i === 0 || i === 4; // Force some verified leads
+        const profile = isVerified ? profiles[Math.floor(Math.random() * 2) + 5] : profiles[Math.floor(Math.random() * 5)]
+
+        return {
+            id: `act-${offerId}-${i}`,
+            visitorId: profile.includes('@') ? 'Verified Lead' : `Profile ${profile}`,
+            type,
+            timestamp: new Date(Date.now() - i * 3600000).toISOString(),
+            duration: Math.floor(Math.random() * 120) + 5,
+            device: Math.random() > 0.5 ? 'iPhone 15, Safari' : 'Android v14, Chrome',
+            interestScore: profile.includes('@') ? 'verified' : scores[Math.floor(Math.random() * 3)],
+            verifiedData: profile.includes('@') ? { email: profile } : undefined
+        }
+    })
+}
 
 export default function OffersPage() {
     const [filter, setFilter] = useState('all')
     const [showModal, setShowModal] = useState(false)
     const [uploadMode, setUploadMode] = useState<'url' | 'file'>('url')
+    const [selectedOfferForStats, setSelectedOfferForStats] = useState<Offer | null>(null)
+    const [mockActivities, setMockActivities] = useState<EngagementActivity[]>([])
+
+    const openStats = (offer: Offer) => {
+        setMockActivities(generateMockActivities(offer.id))
+        setSelectedOfferForStats(offer)
+    }
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -152,7 +184,7 @@ export default function OffersPage() {
                                             <button className="db-btn db-btn-ghost" style={{ padding: '0.4rem' }}>
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
                                             </button>
-                                            <button className="db-btn db-btn-ghost" style={{ padding: '0.4rem' }}>
+                                            <button className="db-btn db-btn-ghost" style={{ padding: '0.4rem' }} onClick={() => openStats(offer)}>
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
                                             </button>
                                         </div>
@@ -221,9 +253,9 @@ export default function OffersPage() {
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
                                 Edit
                             </button>
-                            <button className="db-btn db-btn-ghost" style={{ flex: 1, justifyContent: 'center' }}>
+                            <button className="db-btn db-btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => openStats(offer)}>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
-                                Stats
+                                Engagement
                             </button>
                         </div>
                     </div>
@@ -462,6 +494,117 @@ export default function OffersPage() {
                     </div>
                 </div>
             )}
+            {/* Engagement Stats Modal */}
+            {selectedOfferForStats && (
+                <div className="db-modal-overlay" onClick={() => setSelectedOfferForStats(null)}>
+                    <div className="db-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+                        <div className="db-modal-header" style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '1.25rem' }}>
+                            <div>
+                                <h3 className="db-card-title" style={{ margin: 0 }}>Engagement Gold Dust</h3>
+                                <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>Real-time activity for: <b>{selectedOfferForStats.headline}</b></p>
+                            </div>
+                            <button onClick={() => setSelectedOfferForStats(null)} className="db-btn-close">&times;</button>
+                        </div>
+
+                        <div className="db-modal-content" style={{ padding: '0 0 1.5rem 0' }}>
+                            {/* Intent Summary */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', padding: '1.5rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                <div style={{ borderRight: '1px solid #e2e8f0', paddingRight: '1rem' }}>
+                                    <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Interest Score</div>
+                                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10b981' }}>🔥 8.4/10</div>
+                                </div>
+                                <div style={{ borderRight: '1px solid #e2e8f0', paddingRight: '1rem', paddingLeft: '0.5rem' }}>
+                                    <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Avg. View Time</div>
+                                    <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>42s</div>
+                                </div>
+                                <div style={{ paddingLeft: '0.5rem' }}>
+                                    <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Repeat Scanners</div>
+                                    <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>24%</div>
+                                </div>
+                            </div>
+
+                            {/* Activity Feed */}
+                            <div style={{ padding: '1.5rem 1.5rem 0 1.5rem' }}>
+                                <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    Live Interaction Feed
+                                    <span style={{ padding: '2px 8px', background: '#ecfdf5', color: '#10b981', fontSize: '0.65rem', borderRadius: '10px' }}>Real-time</span>
+                                </h4>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    {mockActivities.map((act) => (
+                                        <div key={act.id} style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            padding: '1rem',
+                                            background: act.interestScore === 'verified' ? 'rgba(37, 99, 235, 0.04)' : '#fff',
+                                            borderRadius: '1rem',
+                                            border: act.interestScore === 'verified' ? '1px solid rgba(37, 99, 235, 0.1)' : '1px solid #f1f5f9',
+                                            transition: 'all 0.2s hover',
+                                            cursor: 'default'
+                                        }}>
+                                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                                <div style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    borderRadius: '50%',
+                                                    background: act.interestScore === 'verified' ? '#2563eb' : '#f1f5f9',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '1rem'
+                                                }}>
+                                                    {act.interestScore === 'verified' ? '👤' : '👻'}
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>{act.visitorId}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', gap: '0.5rem' }}>
+                                                        <span>{act.device}</span>
+                                                        <span>•</span>
+                                                        <span>{new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div style={{ textAlign: 'right' }}>
+                                                <div style={{
+                                                    fontSize: '0.7rem',
+                                                    fontWeight: 800,
+                                                    color: act.interestScore === 'verified' ? '#2563eb' : act.interestScore === 'high' ? '#f59e0b' : '#94a3b8',
+                                                    textTransform: 'uppercase',
+                                                    marginBottom: '0.25rem'
+                                                }}>
+                                                    {act.type === 'view' ? 'Page Viewed' :
+                                                        act.type === 'click' ? 'Clicked CTA' :
+                                                            act.type === 'directions' ? 'Got Directions' :
+                                                                act.type === 'claim' ? 'Claimed Lead' : 'Saved Offer'}
+                                                </div>
+                                                <div style={{
+                                                    fontSize: '0.65rem',
+                                                    padding: '2px 8px',
+                                                    borderRadius: '4px',
+                                                    background: act.interestScore === 'verified' ? '#dbeafe' : act.interestScore === 'high' ? '#fef3c7' : '#f1f5f9',
+                                                    color: act.interestScore === 'verified' ? '#1e40af' : act.interestScore === 'high' ? '#92400e' : '#64748b',
+                                                    fontWeight: 700
+                                                }}>
+                                                    {act.interestScore.toUpperCase()} {act.interestScore === 'verified' ? '👑' : act.interestScore === 'high' ? '🔥' : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="db-modal-footer">
+                            <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, fontStyle: 'italic' }}>
+                                * Visitor IDs are anonymized using secure device fingerprinting to protect consumer privacy while providing business value.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </DashboardLayout>
     )
 }
+

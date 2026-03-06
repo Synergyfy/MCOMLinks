@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
 import { mockOffers } from '../../mock/offers'
+import { mockSeasons } from '../../mock/admin'
 
 export default function AdminOfferManager() {
     const [offers, setOffers] = useState(mockOffers)
@@ -314,7 +315,25 @@ export default function AdminOfferManager() {
 
                                         <div className="db-form-group">
                                             <label className="db-label">Seasonal Automation</label>
-                                            <select className="db-input" value={newOffer.season} onChange={e => setNewOffer({ ...newOffer, season: e.target.value as any })}>
+                                            <select
+                                                className="db-input"
+                                                value={newOffer.season}
+                                                onChange={e => {
+                                                    const selectedValue = e.target.value;
+                                                    const seasonData = mockSeasons.find(s => s.id === `s-${selectedValue}`);
+
+                                                    if (seasonData) {
+                                                        setNewOffer({
+                                                            ...newOffer,
+                                                            season: selectedValue as any,
+                                                            startDate: seasonData.startDate,
+                                                            endDate: seasonData.endDate
+                                                        });
+                                                    } else {
+                                                        setNewOffer({ ...newOffer, season: selectedValue as any });
+                                                    }
+                                                }}
+                                            >
                                                 <option value="all">Evergreen (Default)</option>
                                                 <option value="winter">Winter Campaign</option>
                                                 <option value="spring">Spring Campaign</option>

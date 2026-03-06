@@ -1,13 +1,57 @@
 import DashboardLayout from '../../components/DashboardLayout'
 import { mockMetrics } from '../../mock/business'
-import { mockOffers } from '../../mock/offers'
+import { mockOffers, type EngagementActivity } from '../../mock/offers'
 import { mockBusiness } from '../../mock/business'
+import { useState } from 'react'
+
+// Mock generator for aggregate analytics feed
+const generateAggregateFeed = (): EngagementActivity[] => {
+    return [
+        { id: '1', visitorId: 'Profile #A7B2', type: 'directions', timestamp: new Date().toISOString(), interestScore: 'high', device: 'iPhone 15' },
+        { id: '2', visitorId: 'sarah@email.com', type: 'claim', timestamp: new Date(Date.now() - 3600000).toISOString(), interestScore: 'verified', device: 'Android v14' },
+        { id: '3', visitorId: 'Profile #99F1', type: 'view', timestamp: new Date(Date.now() - 7200000).toISOString(), interestScore: 'medium', device: 'iPhone 13' }
+    ]
+}
 
 export default function AnalyticsPage() {
     const myOffers = mockOffers.filter(o => o.businessName === mockBusiness.name && o.status === 'approved')
+    const [recentFeed] = useState(generateAggregateFeed())
 
     return (
         <DashboardLayout title="Performance Analytics">
+            {/* 0. Recent Engagement Hub */}
+            <div className="db-card" style={{ marginBottom: '1.5rem', background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                    <h3 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ display: 'inline-block', width: '8px', height: '8px', background: '#10b981', borderRadius: '50%', boxShadow: '0 0 8px rgba(16, 185, 129, 0.5)' }}></span>
+                        Recent Engagement Hub
+                    </h3>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>Live Update: Just now</span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {recentFeed.map(act => (
+                        <div key={act.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', borderLeft: `3px solid ${act.interestScore === 'verified' ? '#2563eb' : '#e2e8f0'}`, background: '#fff', borderRadius: '0 0.5rem 0.5rem 0' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ fontSize: '1rem' }}>{act.interestScore === 'verified' ? '👤' : '👻'}</div>
+                                <div>
+                                    <div style={{ fontSize: '0.85rem', fontWeight: 800 }}>{act.visitorId}</div>
+                                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                                        {act.type === 'directions' ? '📍 Requested Directions' : act.type === 'claim' ? '✅ Claimed Offer' : '👀 Viewed Offer'}
+                                    </div>
+                                </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8' }}>{new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                <span style={{ fontSize: '0.6rem', fontWeight: 800, color: act.interestScore === 'verified' ? '#2563eb' : '#475569' }}>
+                                    {act.interestScore.toUpperCase()} {act.interestScore === 'verified' ? '💎' : ''}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
             {/* 1. Global Metrics Summary */}
             <div className="db-stats-grid">
                 <div className="db-stat-card">
