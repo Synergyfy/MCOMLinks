@@ -4,7 +4,7 @@ import { systemLogs } from '../../mock/admin'
 export default function SystemHealth() {
     return (
         <AdminLayout title="System Integrity">
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem' }}>
+            <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem' }}>
 
                 {/* 1. Infrastructure Metrics - Step 273-286 */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -34,7 +34,7 @@ export default function SystemHealth() {
 
                     <div className="db-card">
                         <h2 className="db-card-title" style={{ marginBottom: '1.5rem' }}>Atomic Persistence Health</h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                        <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                             <div style={{ padding: '1.25rem', background: '#f8fafc', borderRadius: '1rem', textAlign: 'center' }}>
                                 <div style={{ fontSize: '0.65rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 800 }}>Redis Pointers</div>
                                 <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981' }}>CONNECTED</div>

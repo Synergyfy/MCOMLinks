@@ -33,7 +33,7 @@ export default function AdminDashboard() {
                 ))}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem' }}>
+            <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem' }}>
 
                 {/* 2. System Alerts & Heatmap Logic - Step 281-285 */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

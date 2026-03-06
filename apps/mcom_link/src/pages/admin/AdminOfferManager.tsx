@@ -90,12 +90,12 @@ export default function AdminOfferManager() {
     return (
         <AdminLayout title="Global Offer Inventory">
             <div className="db-card" style={{ marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <div className="db-grid-stack" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', gap: '1rem' }}>
                     <div>
                         <h2 className="db-card-title">All System Offers</h2>
                         <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Full visibility and override control across all merchant campaigns.</p>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <div className="db-grid-stack" style={{ display: 'flex', gap: '0.75rem' }}>
                         <select className="db-input" style={{ width: '160px' }} value={filter} onChange={e => setFilter(e.target.value)}>
                             <option value="all">All Statuses</option>
                             <option value="approved">Approved</option>
@@ -106,7 +106,8 @@ export default function AdminOfferManager() {
                     </div>
                 </div>
 
-                <div className="db-table-wrapper">
+                {/* Desktop View */}
+                <div className="db-table-wrapper desktop-only">
                     <table className="db-table">
                         <thead>
                             <tr>
@@ -158,6 +159,47 @@ export default function AdminOfferManager() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Mobile View */}
+                <div className="mobile-only" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {filteredOffers.map(offer => (
+                        <div key={offer.id} className="db-offer-card-mobile">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                <div>
+                                    <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0a0a0a' }}>{offer.businessName}</div>
+                                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{offer.headline}</div>
+                                </div>
+                                <span className={`db-badge db-badge-${offer.status}`}>
+                                    {offer.status.toUpperCase()}
+                                </span>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                <div style={{ fontSize: '0.85rem' }}>{(offer as any).location || 'High Street Central'}</div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem', background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem' }}>
+                                <div>
+                                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Scans</div>
+                                    <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>{offer.performance.scans}</div>
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Conversion</div>
+                                    <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#10b981' }}>{offer.performance.scans > 0 ? ((offer.performance.claims / offer.performance.scans) * 100).toFixed(1) : 0}%</div>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button className="db-btn db-btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => handleDuplicate(offer.id)}>
+                                    Duplicate
+                                </button>
+                                <button className="db-btn db-btn-ghost" style={{ flex: 1, justifyContent: 'center', color: '#ef4444' }} onClick={() => handleArchive(offer.id)}>
+                                    Archive
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
 
             {/* Add Offer Modal */}
@@ -170,7 +212,7 @@ export default function AdminOfferManager() {
                         </div>
                         <form onSubmit={handleAddOffer}>
                             <div className="db-modal-content">
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                         <div className="db-form-group">
                                             <label className="db-label">Business Name</label>
@@ -249,7 +291,7 @@ export default function AdminOfferManager() {
                                         )}
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                             <div className="db-form-group">
                                                 <label className="db-label">Start Date</label>
                                                 <input type="date" className="db-input" required value={newOffer.startDate} onChange={e => setNewOffer({ ...newOffer, startDate: e.target.value })} />
@@ -334,9 +376,9 @@ export default function AdminOfferManager() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="db-modal-footer">
-                                <button type="button" className="db-btn db-btn-ghost" onClick={() => setIsAddModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="db-btn db-btn-primary">Provision Global Offer</button>
+                            <div className="db-modal-footer" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                <button type="button" className="db-btn db-btn-ghost" onClick={() => setIsAddModalOpen(false)} style={{ flex: 1, justifyContent: 'center' }}>Cancel</button>
+                                <button type="submit" className="db-btn db-btn-primary" style={{ flex: 1, justifyContent: 'center' }}>Provision Global Offer</button>
                             </div>
                         </form>
                     </div >

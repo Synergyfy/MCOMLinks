@@ -174,8 +174,8 @@ export default function LocationManager() {
     return (
         <AdminLayout title="Network Management">
             <div className="db-card" style={{ marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                         <div>
                             <h2 className="db-card-title">Rotator Network</h2>
                             <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Management of high street clusters and local radius hubs.</p>
@@ -233,7 +233,8 @@ export default function LocationManager() {
                     </div>
                 </div>
 
-                <div className="db-table-wrapper">
+                {/* Desktop View */}
+                <div className="db-table-wrapper desktop-only">
                     <table className="db-table">
                         <thead>
                             <tr>
@@ -358,10 +359,57 @@ export default function LocationManager() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Mobile View */}
+                <div className="mobile-only" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {filteredLocations.map(loc => (
+                        <div key={loc.id} className="db-offer-card-mobile">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                <div
+                                    style={{ fontWeight: 800, cursor: 'pointer', color: '#0f172a', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}
+                                    onClick={() => openManageModal(loc)}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        {loc.name}
+                                        {loc.type === 'hyperlocal' && (
+                                            <span style={{ fontSize: '0.65rem', background: '#3b82f6', color: '#fff', padding: '1px 4px', borderRadius: '4px' }}>5mi</span>
+                                        )}
+                                    </div>
+                                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{loc.city}, UK</div>
+                                </div>
+                                <span className={`db-badge db-badge-${loc.status === 'active' ? 'approved' : 'rejected'}`}>
+                                    {loc.status === 'active' ? 'ACTIVE' : 'PAUSED'}
+                                </span>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                {loc.type === 'hyperlocal' ? (
+                                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', padding: '0.25rem 0.5rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', display: 'inline-block' }}>
+                                        📮 {loc.postcode}
+                                    </div>
+                                ) : (
+                                    <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{loc.businesses} Businesses</div>
+                                )}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={{ fontWeight: 800, color: '#2563eb', fontSize: '0.8rem' }}>P-{loc.pointer}</span>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button className="db-btn db-btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => toggleStatus(loc.id)}>
+                                    {loc.status === 'active' ? 'Pause' : 'Activate'}
+                                </button>
+                                <button className="db-btn db-btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => openManageModal(loc)}>
+                                    Manage Engine
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
 
             {/* Rotator Quick Override Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem' }}>
+            <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem' }}>
                 <div className="db-card">
                     <h2 className="db-card-title" style={{ marginBottom: '1.5rem' }}>Global Rotation Engine Health</h2>
                     <div style={{ padding: '2rem', background: '#0a0a0a', borderRadius: '1.25rem', color: '#fff' }}>
@@ -438,7 +486,7 @@ export default function LocationManager() {
                                             onChange={e => setNewLocation({ ...newLocation, name: e.target.value })}
                                         />
                                     </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <div className="db-form-group">
                                             <label className="db-label">City</label>
                                             <select
@@ -493,7 +541,7 @@ export default function LocationManager() {
                             </div>
                             <button onClick={() => setIsManageModalOpen(false)} className="db-btn-close">&times;</button>
                         </div>
-                        <div className="db-modal-content" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '2rem' }}>
+                        <div className="db-modal-content db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '2rem' }}>
                             {/* Left: General Settings */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', borderRight: '1px solid #f1f5f9', paddingRight: '1.5rem' }}>
                                 <div>
@@ -615,7 +663,7 @@ export default function LocationManager() {
                                 )}
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
                                     {getOrderedOffers().map((offer, i) => (
-                                        <div key={offer.id} style={{
+                                        <div key={offer.id} className="db-grid-stack" style={{
                                             display: 'flex',
                                             justifyContent: 'space-between',
                                             alignItems: 'center',
@@ -786,7 +834,7 @@ export default function LocationManager() {
                                 Download it for use in physical storefronts or NFC tags.
                             </p>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <a
                                     href={`/r/${selectedQRLocation.id}`}
                                     target="_blank"

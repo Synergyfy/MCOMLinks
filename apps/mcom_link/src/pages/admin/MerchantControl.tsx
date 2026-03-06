@@ -50,8 +50,8 @@ export default function MerchantControl() {
     return (
         <AdminLayout title="Business Governance">
             <div className="db-card" style={{ marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                         <div>
                             <h2 className="db-card-title">Merchant Directory</h2>
                             <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Management of individual business accounts and their billing status.</p>
@@ -71,7 +71,8 @@ export default function MerchantControl() {
                     <button className="db-btn db-btn-primary" onClick={() => setIsAddModalOpen(true)}>+ Onboard Merchant</button>
                 </div>
 
-                <div className="db-table-wrapper">
+                {/* Desktop View */}
+                <div className="db-table-wrapper desktop-only">
                     <table className="db-table">
                         <thead>
                             <tr>
@@ -120,6 +121,50 @@ export default function MerchantControl() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Mobile View */}
+                <div className="mobile-only" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {filteredMerchants.map(m => (
+                        <div key={m.id} className="db-offer-card-mobile">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                <div>
+                                    <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0a0a0a' }}>{m.name}</div>
+                                    <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>ID: {m.id}</div>
+                                </div>
+                                <span className={`db-badge db-badge-${m.status === 'active' ? 'approved' : 'rejected'}`}>
+                                    {m.status.toUpperCase()}
+                                </span>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem', background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem' }}>
+                                <div>
+                                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Owner</div>
+                                    <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{m.owner}</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{m.email}</div>
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Account Tier</div>
+                                    <span style={{ display: 'inline-block', marginTop: '0.25rem' }} className={`db-badge ${m.plan === 'Premium' ? 'db-badge-approved' : 'db-badge-draft'}`}>
+                                        {m.plan}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button className="db-btn db-btn-ghost" style={{ flex: 1, justifyContent: 'center' }}>
+                                    Invoices
+                                </button>
+                                <button
+                                    className="db-btn db-btn-ghost"
+                                    style={{ flex: 1, justifyContent: 'center', color: m.status === 'active' ? '#ef4444' : '#10b981' }}
+                                    onClick={() => setMerchants(merchants.map(m2 => m2.id === m.id ? { ...m2, status: m2.status === 'active' ? 'suspended' : 'active' } : m2))}
+                                >
+                                    {m.status === 'active' ? 'Suspend' : 'Reactivate'}
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
 
             {/* Onboard Merchant Modal */}
@@ -154,9 +199,9 @@ export default function MerchantControl() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="db-modal-footer">
-                                <button type="button" className="db-btn db-btn-ghost" onClick={() => setIsAddModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="db-btn db-btn-primary">Provision Account</button>
+                            <div className="db-modal-footer" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                <button type="button" className="db-btn db-btn-ghost" onClick={() => setIsAddModalOpen(false)} style={{ flex: 1, justifyContent: 'center' }}>Cancel</button>
+                                <button type="submit" className="db-btn db-btn-primary" style={{ flex: 1, justifyContent: 'center' }}>Provision Account</button>
                             </div>
                         </form>
                     </div>

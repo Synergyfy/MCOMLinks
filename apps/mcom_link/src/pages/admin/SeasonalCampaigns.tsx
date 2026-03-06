@@ -23,7 +23,7 @@ export default function SeasonalCampaigns() {
             {/* 1. Global Timeline - Step 187-210 */}
             <div className="db-card" style={{ marginBottom: '2rem' }}>
                 <h2 className="db-card-title" style={{ marginBottom: '1.5rem' }}>Annual Campaign Roadmap</h2>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem' }}>
+                <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem' }}>
                     {seasons.map(season => (
                         <div key={season.id} className="db-card" style={{
                             padding: '1.5rem',
@@ -53,7 +53,7 @@ export default function SeasonalCampaigns() {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '2rem' }}>
+            <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '2rem' }}>
                 <div className="db-card">
                     <h2 className="db-card-title" style={{ marginBottom: '1.5rem' }}>Priority Rule Engine</h2>
                     <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: '1.5', marginBottom: '2rem' }}>
@@ -78,7 +78,8 @@ export default function SeasonalCampaigns() {
 
                 <div className="db-card">
                     <h2 className="db-card-title" style={{ marginBottom: '1.5rem' }}>Seasonal Content Distribution</h2>
-                    <div className="db-table-wrapper">
+                    {/* Desktop View */}
+                    <div className="db-table-wrapper desktop-only">
                         <table className="db-table">
                             <thead>
                                 <tr>
@@ -109,6 +110,31 @@ export default function SeasonalCampaigns() {
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Mobile View */}
+                    <div className="mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {[
+                            { cat: 'Retail / Fashion', season: 'Winter Sale', status: 'QUEUED' },
+                            { cat: 'Summer Refresh', season: 'Summer', status: 'QUEUED' },
+                            { cat: 'Spring Equinox', season: 'Spring', status: 'LIVE' }
+                        ].map((row, i) => (
+                            <div key={i} className="db-offer-card-mobile">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                    <div>
+                                        <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0a0a0a' }}>{row.cat}</div>
+                                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Season: <b>{row.season}</b></div>
+                                    </div>
+                                    <span className={`db-badge ${row.status === 'LIVE' ? 'db-badge-approved' : 'db-badge-draft'}`}>
+                                        {row.status}
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16a34a' }} />
+                                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Auto-activate enabled</span>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                     <p style={{ marginTop: '1.5rem', fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic', textAlign: 'center' }}>
                         Offers with seasonal tags are automatically bypassed if the current system date is outside the defined range.
@@ -153,9 +179,9 @@ export default function SeasonalCampaigns() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="db-modal-footer">
-                                <button type="button" className="db-btn db-btn-ghost" onClick={() => setIsEditModalOpen(false)}>Back</button>
-                                <button type="submit" className="db-btn db-btn-primary">Update Cycle</button>
+                            <div className="db-modal-footer" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                <button type="button" className="db-btn db-btn-ghost" onClick={() => setIsEditModalOpen(false)} style={{ flex: 1, justifyContent: 'center' }}>Back</button>
+                                <button type="submit" className="db-btn db-btn-primary" style={{ flex: 1, justifyContent: 'center' }}>Update Cycle</button>
                             </div>
                         </form>
                     </div>

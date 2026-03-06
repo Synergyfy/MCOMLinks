@@ -7,7 +7,7 @@ export default function IdentityControl() {
 
     return (
         <AdminLayout title="Global Branding">
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2.5rem' }}>
+            <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2.5rem' }}>
 
                 {/* 1. Global Visual Config - Step 212-226 */}
                 <div className="db-card">

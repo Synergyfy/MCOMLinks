@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import '../styles/dashboard.css'
 
@@ -8,6 +9,7 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children, title }: AdminLayoutProps) {
     const location = useLocation()
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
     const navItems = [
         { label: 'Global Dashboard', path: '/admin', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><line x1="3" x2="21" y1="9" y2="9" /><line x1="9" x2="9" y1="21" y2="9" /></svg> },
@@ -22,11 +24,24 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
 
     return (
         <div className="db-container">
+            {/* Sidebar Overlay */}
+            <div
+                className={`db-sidebar-overlay ${isSidebarOpen ? 'active' : ''}`}
+                onClick={() => setIsSidebarOpen(false)}
+            />
+
             {/* Sidebar - Step 16 */}
-            <aside className="db-sidebar" style={{ backgroundColor: '#2563eb', borderRight: 'none' }}>
+            <aside className={`db-sidebar ${isSidebarOpen ? 'open' : ''}`} style={{ backgroundColor: '#2563eb', borderRight: 'none' }}>
                 <div className="db-logo-section" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <div className="db-logo-placeholder" style={{ background: '#ffffff', color: '#2563eb', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900 }}>M</div>
                     <h1 className="db-logo-text" style={{ color: '#ffffff', fontSize: '1.2rem', margin: 0, fontWeight: 900 }}>ADMIN <span style={{ color: '#bfdbfe', fontWeight: 400 }}>CENTRAL</span></h1>
+                    <button
+                        className="db-menu-toggle mobile-only"
+                        onClick={() => setIsSidebarOpen(false)}
+                        style={{ marginLeft: 'auto', marginRight: 0, color: '#ffffff' }}
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                    </button>
                 </div>
 
                 <nav className="db-nav" style={{ padding: '0 1rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -44,6 +59,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                                     borderRadius: '0.5rem',
                                     padding: '0.75rem 1rem'
                                 }}
+                                onClick={() => setIsSidebarOpen(false)}
                             >
                                 <span className="db-nav-icon">{item.icon}</span>
                                 <span className="db-nav-label" style={{ fontWeight: active ? 800 : 600 }}>{item.label}</span>
@@ -68,14 +84,20 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
             <main className="db-main">
                 <header className="db-header" style={{ backgroundColor: '#fff', borderBottom: '1px solid #e2e8f0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <button
+                            className="db-menu-toggle"
+                            onClick={() => setIsSidebarOpen(true)}
+                        >
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+                        </button>
                         <h2 className="db-header-title" style={{ color: '#0f172a' }}>{title}</h2>
-                        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '0.25rem 0.5rem', borderRadius: '0.5rem', fontSize: '0.65rem', fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase' }}>
+                        <div className="desktop-only" style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '0.25rem 0.5rem', borderRadius: '0.5rem', fontSize: '0.65rem', fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase' }}>
                             System Command
                         </div>
                     </div>
 
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                        <div style={{ textAlign: 'right', marginRight: '1rem' }}>
+                        <div className="desktop-only" style={{ textAlign: 'right', marginRight: '1rem' }}>
                             <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#10b981' }}>● System Live</div>
                             <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Uptime: 99.9%</div>
                         </div>
@@ -93,6 +115,24 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                     {children}
                 </div>
             </main>
+
+            {/* Mobile Bottom Tab Bar */}
+            <nav className="db-bottom-nav">
+                <div className="db-bottom-nav-inner">
+                    {navItems.slice(0, 5).map((item) => (
+                        <Link
+                            key={item.path}
+                            to={item.path}
+                            className={`db-bottom-tab ${isActive(item.path) ? 'active' : ''}`}
+                        >
+                            <span className="db-bottom-tab-icon">
+                                {item.icon}
+                            </span>
+                            <span style={{ fontSize: '0.6rem', textAlign: 'center', lineHeight: '1', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{item.label}</span>
+                        </Link>
+                    ))}
+                </div>
+            </nav>
         </div>
     )
 }
