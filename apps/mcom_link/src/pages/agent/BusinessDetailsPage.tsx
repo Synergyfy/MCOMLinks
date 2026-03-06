@@ -67,7 +67,7 @@ export default function BusinessDetailsPage() {
 
     return (
         <AgentLayout title={`Manage: ${business.name}`}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '2rem' }}>
+            <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '2rem' }}>
 
                 {/* Left Column: Business Info & Logs - Step 8 */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -189,7 +189,7 @@ export default function BusinessDetailsPage() {
                         </div>
                         <form onSubmit={handleAddOffer}>
                             <div className="db-modal-content">
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                         <div className="db-form-group">
                                             <label className="db-label">Offer Headline</label>
@@ -227,7 +227,7 @@ export default function BusinessDetailsPage() {
                                                 <input type="text" className="db-input" required placeholder="e.g. shop@email.com" value={newOffer.ctaValue} onChange={e => setNewOffer({ ...newOffer, ctaValue: e.target.value })} />
                                             </div>
                                         )}
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                             <div className="db-form-group">
                                                 <label className="db-label">Start Date</label>
                                                 <input type="date" className="db-input" required value={newOffer.startDate} onChange={e => setNewOffer({ ...newOffer, startDate: e.target.value })} />
@@ -247,9 +247,9 @@ export default function BusinessDetailsPage() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="db-modal-footer">
-                                <button type="button" className="db-btn db-btn-ghost" onClick={() => setIsAddModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="db-btn db-btn-primary">Submit Draft to Merchant</button>
+                            <div className="db-modal-footer" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                <button type="button" className="db-btn db-btn-ghost" onClick={() => setIsAddModalOpen(false)} style={{ flex: 1, justifyContent: 'center' }}>Cancel</button>
+                                <button type="submit" className="db-btn db-btn-primary" style={{ flex: 1, justifyContent: 'center' }}>Submit Draft to Merchant</button>
                             </div>
                         </form>
                     </div>

@@ -28,7 +28,7 @@ export default function AgentPerformancePage() {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem', marginTop: '2rem' }}>
+            <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem', marginTop: '2rem' }}>
                 {/* 2. Growth by Category - Step 10/11 */}
                 <div className="db-card">
                     <h2 className="db-card-title" style={{ marginBottom: '1.5rem' }}>Conversion Trends by Sector</h2>

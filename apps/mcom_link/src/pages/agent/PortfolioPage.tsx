@@ -34,7 +34,8 @@ export default function PortfolioPage() {
 
             {/* 2. Portfolio Table - Step 6 & 10 */}
             <div className="db-card" style={{ padding: 0 }}>
-                <div className="db-table-wrapper">
+                {/* Desktop View */}
+                <div className="db-table-wrapper desktop-only">
                     <table className="db-table">
                         <thead>
                             <tr>
@@ -87,6 +88,53 @@ export default function PortfolioPage() {
                             ))}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Mobile View */}
+                <div className="mobile-only" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {sortedBusinesses.map((biz) => (
+                        <div key={biz.id} className="db-offer-card-mobile">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                <Link to={`/agent/business/${biz.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                                    <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0a0a0a' }}>{biz.name}</div>
+                                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{biz.location}</div>
+                                </Link>
+                                <span className={`db-badge db-badge-${biz.status === 'active' ? 'approved' : biz.status === 'inactive' ? 'expired' : 'rejected'}`}>
+                                    {biz.status === 'active' ? 'Live' : biz.status === 'inactive' ? 'No Offer' : 'Needs Action'}
+                                </span>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                <span className={`db-badge ${biz.plan === 'Premium' ? 'db-badge-approved' : 'db-badge-draft'}`} style={{ textTransform: 'uppercase', fontSize: '0.65rem' }}>
+                                    {biz.plan} Plan
+                                </span>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.25rem', background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem' }}>
+                                <div>
+                                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Scans</div>
+                                    <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>{biz.scans}</div>
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Claims</div>
+                                    <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>{biz.claims}</div>
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>CR</div>
+                                    <div style={{ fontWeight: 800, fontSize: '1.1rem', color: biz.conversion > 10 ? '#2563eb' : '#0a0a0a' }}>{biz.conversion}%</div>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <Link to={`/agent/business/${biz.id}`} className="db-btn db-btn-ghost" style={{ flex: 1, justifyContent: 'center' }}>
+                                    View Details
+                                </Link>
+                                <Link to={`/agent/business/${biz.id}/logs`} className="db-btn db-btn-ghost" style={{ flex: 1, justifyContent: 'center' }}>
+                                    Log Contact
+                                </Link>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
 

@@ -93,7 +93,7 @@ export default function OnboardingPage() {
 
             <div style={{ maxWidth: '800px', margin: '0 auto' }}>
                 {step === 1 && (
-                    <div className="db-card animate-fade-in" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 280px', gap: '2.5rem', padding: '2.5rem' }}>
+                    <div className="db-card animate-fade-in db-grid-stack" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 280px', gap: '2.5rem', padding: '1.5rem' }}>
                         <div>
                             <h2 className="db-card-title" style={{ marginBottom: '1.75rem', fontSize: '1.25rem' }}>Business Identity</h2>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -101,7 +101,7 @@ export default function OnboardingPage() {
                                     <label className="db-label">Official Business Name</label>
                                     <input type="text" className="db-input" placeholder="e.g. Vintage Threads" value={formData.businessName} onChange={e => setFormData({ ...formData, businessName: e.target.value })} />
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                     <div className="db-form-group">
                                         <label className="db-label">Contact Person</label>
                                         <input type="text" className="db-input" placeholder="Name" value={formData.contactPerson} onChange={e => setFormData({ ...formData, contactPerson: e.target.value })} />
@@ -182,7 +182,7 @@ export default function OnboardingPage() {
                 {step === 2 && (
                     <div className="db-card animate-fade-in" style={{ padding: '2.5rem' }}>
                         <h2 className="db-card-title" style={{ marginBottom: '1.75rem', fontSize: '1.25rem' }}>Visibility & Placement Plans</h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                        <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                             <div
                                 onClick={() => setFormData({ ...formData, planType: 'Basic' })}
                                 className={`db-plan-card ${formData.planType === 'Basic' ? 'active' : ''}`}
@@ -279,7 +279,7 @@ export default function OnboardingPage() {
                             </p>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+                        <div className="db-grid-stack" style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
                             <button className="db-btn db-btn-ghost" style={{ flex: 1, padding: '1rem', justifyContent: 'center' }} onClick={handleBack}>Edit Details</button>
                             <button className="db-btn db-btn-primary" style={{ flex: 2, padding: '1rem', justifyContent: 'center' }} onClick={handleSubmit}>Onboard Merchant</button>
                         </div>
@@ -307,7 +307,7 @@ export default function OnboardingPage() {
                         <p style={{ color: '#64748b', fontSize: '1rem', maxWidth: '400px', margin: '0 auto 2.5rem', lineHeight: '1.6' }}>
                             The onboard request for <b>{formData.businessName}</b> has been sent to the System Admin. Deployment is pending verification.
                         </p>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div className="db-grid-stack" style={{ display: 'flex', gap: '1rem' }}>
                             <button className="db-btn db-btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setStep(1)}>Back to Dashboard</button>
                             <button className="db-btn db-btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => {
                                 setFormData({

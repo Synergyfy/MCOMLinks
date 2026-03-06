@@ -46,7 +46,7 @@ export default function AgentDashboard() {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
+            <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
 
                 {/* 2. Urgent Portfolio Actions - Step 7 */}
                 <div className="db-card">

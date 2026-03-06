@@ -44,7 +44,7 @@ export default function BusinessCommLogPage() {
                 <div className="db-card animate-fade-in" style={{ marginBottom: '2.5rem' }}>
                     <h2 className="db-card-title" style={{ marginBottom: '1.5rem' }}>Log New Interaction</h2>
                     <form onSubmit={handleAddLog} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '1.5rem' }}>
+                        <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '1.5rem' }}>
                             <div className="db-form-group">
                                 <label className="db-label">Contact Method</label>
                                 <select
