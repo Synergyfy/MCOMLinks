@@ -2,12 +2,13 @@
 // Minimal form: Name, Email, Phone (optional)
 // Validates fields, saves data, shows confirmation
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
-import { getOfferById } from '../mock/rotatorEngine'
-import { trackEvent } from '../mock/tracker'
+import { api } from '../api/apiClient'
+import type { Offer } from '../types'
 import StorefrontFooter from '../components/StorefrontFooter'
 import FallbackPage from './FallbackPage'
+import LoadingScreen from './LoadingScreen'
 
 export default function ClaimPage() {
     const { offerId } = useParams<{ offerId: string }>()
@@ -15,8 +16,8 @@ export default function ClaimPage() {
     const navigate = useNavigate()
     const locationId = searchParams.get('location') || ''
 
-    const offer = offerId ? getOfferById(offerId) : undefined
-
+    const [offer, setOffer] = useState<Offer | null>(null)
+    const [loading, setLoading] = useState(true)
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -26,11 +27,43 @@ export default function ClaimPage() {
     const [consent, setConsent] = useState(false)
     const [submitting, setSubmitting] = useState(false)
 
+    useEffect(() => {
+        if (!offerId) return
+        const fetchOffer = async () => {
+            try {
+                const data = await api.get<any>(`/r/offer/${offerId}`)
+                if (data) {
+                    setOffer({
+                        ...data,
+                        performance: {
+                            scans: data.scans || 0,
+                            claims: data.claims || 0
+                        },
+                        redirectUrl: data.leadDestination,
+                        mediaType: data.mediaType || 'image',
+                        isActive: data.status === 'approved',
+                    })
+                }
+            } catch (e) {
+                console.error('Failed to fetch offer:', e)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchOffer()
+    }, [offerId])
+
+    if (loading) return <LoadingScreen />
+
     if (!offer) {
         return <FallbackPage />
     }
 
-    const claimFields = offer.claimFields || []
+    const claimFields = offer.claimFields || [
+        { name: 'name', label: 'Your Name', type: 'text', required: true, placeholder: 'Enter your full name' },
+        { name: 'email', label: 'Email Address', type: 'email', required: true, placeholder: 'your@email.com' },
+        { name: 'phone', label: 'Phone Number', type: 'tel', required: false, placeholder: '+44 7XXX XXX XXX' },
+    ]
 
     const validate = (): boolean => {
         const newErrors: Record<string, string> = {}
@@ -60,17 +93,18 @@ export default function ClaimPage() {
 
         setSubmitting(true)
 
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        try {
+            // Log form submission (STEP 8)
+            await api.get(`/r/${locationId}/track/${offer.id}/claim?name=${encodeURIComponent(formData.name)}&email=${encodeURIComponent(formData.email)}`)
 
-        // Log form submission (STEP 8)
-        trackEvent('form_submit', locationId, offer.id, {
-            name: formData.name,
-            email: formData.email,
-        })
-
-        // Navigate to confirmation (STEP 7)
-        navigate(`/confirmed/${offer.id}?location=${locationId}`)
+            // Navigate to confirmation (STEP 7)
+            navigate(`/confirmed/${offer.id}?location=${locationId}`)
+        } catch (e) {
+            console.error('Failed to submit claim:', e)
+            alert('Something went wrong. Please try again.')
+        } finally {
+            setSubmitting(false)
+        }
     }
 
     const handleChange = (name: string, value: string) => {

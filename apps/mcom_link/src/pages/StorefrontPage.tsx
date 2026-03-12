@@ -4,10 +4,9 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { getNextOffer } from '../mock/rotatorEngine'
-import { getLocationById, type Location } from '../mock/locations'
-import { trackEvent, getSessionId } from '../mock/tracker'
-import type { Offer } from '../mock/offers'
+import { api } from '../api/apiClient'
+import type { Offer } from '../types'
+import { fallbackOffer } from '../constants/fallbackOffer'
 import StorefrontHeader from '../components/StorefrontHeader'
 import OfferCard from '../components/OfferCard'
 import CTAButton from '../components/CTAButton'
@@ -20,55 +19,71 @@ export default function StorefrontPage() {
     const { locationId } = useParams<{ locationId: string }>()
     const [loading, setLoading] = useState(true)
     const [offer, setOffer] = useState<Offer | null>(null)
-    const [location, setLocation] = useState<Location | null>(null)
+    const [location, setLocation] = useState<any | null>(null)
     const [isFallback, setIsFallback] = useState(false)
 
     // Use a ref to ensure the rotator only advances ONCE per mount (prevents double-firing in StrictMode)
     const hasRotated = useRef(false)
 
     useEffect(() => {
-        if (!locationId) return
+        if (!locationId || hasRotated.current) return
 
         let isMounted = true
 
-        // Simulate network delay for realistic loading experience (STEP 2)
-        const timer = setTimeout(() => {
-            if (!isMounted) return
+        const fetchOffer = async () => {
+            try {
+                // Fetch the next offer from the backend rotator
+                const result = await api.get<any>(`/r/${locationId}`)
 
-            // Resolve location
-            const loc = getLocationById(locationId)
-            if (!loc || !loc.isActive) {
-                setIsFallback(true)
-                setLoading(false)
-                return
-            }
-            setLocation(loc)
+                if (!isMounted) return
 
-            // Trigger rotator engine (STEP 1 + STEP 5)
-            // We only want to trigger the increment logic ONCE per actual scan/reload intent
-            if (!hasRotated.current) {
-                const sessionId = getSessionId()
-                const result = getNextOffer(locationId, sessionId)
-
-                setOffer(result.offer)
-                setIsFallback(result.isFallback)
-
-                // Mark as rotated so StrictMode second pass doesn't advance pointer again
-                hasRotated.current = true
-
-                // Log events (STEP 8)
-                trackEvent('scan', locationId, result.offer.id)
-                if (!result.isFallback) {
-                    trackEvent('offer_view', locationId, result.offer.id)
+                if (result && result.action === 'redirect' && result.url) {
+                    window.location.href = result.url;
+                    return;
                 }
-            }
 
-            setLoading(false)
-        }, 1200)
+                const { offer: backendOffer, location: backendLocation } = result
+
+                if (!backendOffer || backendOffer.id === 'fallback-branded') {
+                    setOffer(fallbackOffer)
+                    setIsFallback(true)
+                } else {
+                    // Map backend Offer model to frontend Offer interface
+                    const mappedOffer: Offer = {
+                        ...backendOffer,
+                        // Ensure compatibility with frontend components
+                        performance: {
+                            scans: backendOffer.scans || 0,
+                            claims: backendOffer.claims || 0
+                        },
+                        redirectUrl: backendOffer.leadDestination,
+                        mediaType: backendOffer.mediaType || 'image',
+                        isActive: backendOffer.status === 'approved',
+                    }
+                    setOffer(mappedOffer)
+                    setIsFallback(false)
+                }
+
+                if (backendLocation) {
+                    setLocation(backendLocation)
+                }
+
+                hasRotated.current = true
+            } catch (error) {
+                console.error('Failed to fetch offer:', error)
+                if (isMounted) {
+                    setOffer(fallbackOffer)
+                    setIsFallback(true)
+                }
+            } finally {
+                if (isMounted) setLoading(false)
+            }
+        }
+
+        fetchOffer()
 
         return () => {
             isMounted = false
-            clearTimeout(timer)
         }
     }, [locationId])
 

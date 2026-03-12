@@ -2,12 +2,13 @@
 // Instant Redeem Screen: Shows redemption code + instructions
 // No form needed — just display code and track redemption
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
-import { getOfferById } from '../mock/rotatorEngine'
-import { trackEvent } from '../mock/tracker'
+import { api } from '../api/apiClient'
+import type { Offer } from '../types'
 import StorefrontFooter from '../components/StorefrontFooter'
 import FallbackPage from './FallbackPage'
+import LoadingScreen from './LoadingScreen'
 
 export default function RedeemPage() {
     const { offerId } = useParams<{ offerId: string }>()
@@ -15,14 +16,39 @@ export default function RedeemPage() {
     const navigate = useNavigate()
     const locationId = searchParams.get('location') || ''
 
-    const offer = offerId ? getOfferById(offerId) : undefined
+    const [offer, setOffer] = useState<Offer | null>(null)
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        if (offer) {
-            // Log redemption event (STEP 8)
-            trackEvent('redemption', locationId, offer.id)
+        if (!offerId) return
+        const fetchOffer = async () => {
+            try {
+                const data = await api.get<any>(`/r/offer/${offerId}`)
+                if (data) {
+                    setOffer({
+                        ...data,
+                        performance: {
+                            scans: data.scans || 0,
+                            claims: data.claims || 0
+                        },
+                        redirectUrl: data.leadDestination,
+                        mediaType: data.mediaType || 'image',
+                        isActive: data.status === 'approved',
+                    })
+
+                    // Log redemption event (STEP 8)
+                    api.get(`/r/${locationId || 'unknown'}/track/${offerId}/redemption`).catch(() => { })
+                }
+            } catch (e) {
+                console.error('Failed to fetch offer:', e)
+            } finally {
+                setLoading(false)
+            }
         }
-    }, [offer, locationId])
+        fetchOffer()
+    }, [offerId, locationId])
+
+    if (loading) return <LoadingScreen />
 
     if (!offer) {
         return <FallbackPage />

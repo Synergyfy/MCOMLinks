@@ -2,16 +2,48 @@
 // Shown after successful form submission
 // Includes: Success message, what happens next, optional secondary offer suggestion
 
+import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { getOfferById } from '../mock/rotatorEngine'
+import { api } from '../api/apiClient'
+import type { Offer } from '../types'
 import StorefrontFooter from '../components/StorefrontFooter'
+import LoadingScreen from './LoadingScreen'
 
 export default function ConfirmationPage() {
     const { offerId } = useParams<{ offerId: string }>()
     const [searchParams] = useSearchParams()
     const locationId = searchParams.get('location') || ''
 
-    const offer = offerId ? getOfferById(offerId) : undefined
+    const [offer, setOffer] = useState<Offer | null>(null)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        if (!offerId) return
+        const fetchOffer = async () => {
+            try {
+                const data = await api.get<any>(`/r/offer/${offerId}`)
+                if (data) {
+                    setOffer({
+                        ...data,
+                        performance: {
+                            scans: data.scans || 0,
+                            claims: data.claims || 0
+                        },
+                        redirectUrl: data.leadDestination,
+                        mediaType: data.mediaType || 'image',
+                        isActive: data.status === 'approved',
+                    })
+                }
+            } catch (e) {
+                console.error('Failed to fetch offer:', e)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchOffer()
+    }, [offerId])
+
+    if (loading) return <LoadingScreen />
 
     return (
         <div className="sf-container">

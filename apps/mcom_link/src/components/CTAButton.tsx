@@ -3,7 +3,7 @@
 // Logs click event before navigating
 
 import { useNavigate } from 'react-router-dom'
-import { trackEvent } from '../mock/tracker'
+import { api } from '../api/apiClient'
 import type { Offer } from '../mock/offers'
 
 interface CTAButtonProps {
@@ -14,9 +14,13 @@ interface CTAButtonProps {
 export default function CTAButton({ offer, locationId }: CTAButtonProps) {
     const navigate = useNavigate()
 
-    const handleClick = () => {
+    const handleClick = async () => {
         // Log CTA click (STEP 8)
-        trackEvent('cta_click', locationId, offer.id, { ctaType: offer.ctaType })
+        try {
+            await api.get(`/r/${locationId}/track/${offer.id}/click`)
+        } catch (e) {
+            console.error('Failed to track click:', e)
+        }
 
         switch (offer.ctaType) {
             case 'claim':
@@ -27,7 +31,11 @@ export default function CTAButton({ offer, locationId }: CTAButtonProps) {
                 break
             case 'redirect':
                 // Log redirect event before opening (STEP 6C)
-                trackEvent('redirect', locationId, offer.id, { url: offer.redirectUrl || '' })
+                try {
+                    await api.get(`/r/${locationId}/track/${offer.id}/redirect`)
+                } catch (e) {
+                    console.error('Failed to track redirect:', e)
+                }
                 window.open(offer.redirectUrl || '/', '_blank', 'noopener,noreferrer')
                 break
         }

@@ -1,37 +1,45 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AdminLayout from '../../components/AdminLayout'
-import { mockOffers, toggleOfferPremium } from '../../mock/offers'
-import { getRotatorConfig, saveRotatorConfig, type RotatorConfig, type RotationType, type FallbackBehavior } from '../../mock/rotatorStore'
-import { getOfferStats } from '../../mock/tracker'
+import { api } from '../../api/apiClient'
+import LoadingScreen from '../LoadingScreen'
+import type { Offer } from '../../types'
+
+type RotationType = 'sequential' | 'random' | 'scarcity' | 'split'
+type FallbackBehavior = 'default' | 'link' | 'expired'
+
+interface RotatorConfig {
+    id?: string
+    locationId: string
+    type: RotationType
+    offerSequence: string[]
+    fallbackBehavior: FallbackBehavior
+    customLink?: string
+    weights: Record<string, number>
+    scarcityLimits: Record<string, number>
+}
 
 export default function LocationManager() {
+    // 1. All hooks must be at the very top, before ANY conditional returns or logic
     const [activeTab, setActiveTab] = useState<'national' | 'hyperlocal'>('national')
-    const [locations, setLocations] = useState([
-        { id: 'loc-001', name: 'High Street Central', city: 'London', businesses: 24, status: 'active', pointer: 3, country: 'UK', type: 'national', postcode: 'W1A 1AA' },
-        { id: 'loc-002', name: 'Mall North Wing', city: 'London', businesses: 18, status: 'active', pointer: 12, country: 'UK', type: 'national', postcode: 'E1 6AN' },
-        { id: 'loc-003', name: 'East Plaza Square', city: 'Manchester', businesses: 12, status: 'paused', pointer: 0, country: 'UK', type: 'national', postcode: 'M1 1AD' },
-        { id: 'loc-004', name: 'West End Hub', city: 'Birmingham', businesses: 32, status: 'active', pointer: 7, country: 'UK', type: 'national', postcode: 'B1 1BB' },
-        { id: 'loc-005', name: 'Soho Boutique Radius', city: 'London', businesses: 8, status: 'active', pointer: 2, country: 'UK', type: 'hyperlocal', postcode: 'W1F 0AA' },
-        { id: 'loc-006', name: 'Shoreditch Tech Loop', city: 'London', businesses: 15, status: 'active', pointer: 5, country: 'UK', type: 'hyperlocal', postcode: 'EC2A 3AY' }
-    ])
-
+    const [locations, setLocations] = useState<any[]>([])
+    const [allOffers, setAllOffers] = useState<Offer[]>([])
+    const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
     const [isManageModalOpen, setIsManageModalOpen] = useState(false)
     const [selectedLocation, setSelectedLocation] = useState<any>(null)
     const [rotatorConfig, setRotatorConfig] = useState<RotatorConfig | null>(null)
-    const [offersObj, setOffersObj] = useState([...mockOffers])
-
     const [isQRModalOpen, setIsQRModalOpen] = useState(false)
     const [selectedQRLocation, setSelectedQRLocation] = useState<any>(null)
-
-    // Form state for new location
+    const [offerSearchTerm, setOfferSearchTerm] = useState('')
+    const [showAddOfferPanel, setShowAddOfferPanel] = useState(false)
     const [newLocation, setNewLocation] = useState({
         name: '',
         city: 'London',
         type: 'national' as 'national' | 'hyperlocal',
         postcode: ''
     })
+    const [copiedId, setCopiedId] = useState<string | null>(null)
 
     const ukCities = [
         'London', 'Manchester', 'Birmingham', 'Leeds', 'Glasgow',
@@ -39,44 +47,107 @@ export default function LocationManager() {
         'Edinburgh', 'Cardiff', 'Nottingham', 'Southampton'
     ]
 
+    useEffect(() => {
+        fetchData()
+    }, [])
+
+    const fetchData = async () => {
+        try {
+            setLoading(true)
+            const [locs, offers] = await Promise.all([
+                api.get<any[]>('/admin/locations'),
+                api.get<Offer[]>('/admin/offers?status=approved')
+            ])
+            setLocations(Array.isArray(locs) ? locs : [])
+            setAllOffers(Array.isArray(offers) ? offers : [])
+        } catch (error) {
+            console.error('Failed to fetch location data:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
     const filteredLocations = locations.filter(loc => {
-        const matchesSearch = loc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            loc.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            loc.postcode.toLowerCase().includes(searchTerm.toLowerCase())
-        const matchesTab = loc.type === activeTab
+        const matchesSearch = (loc.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (loc.city?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (loc.postcode?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+        const scope = activeTab === 'national' ? 'national' : 'hyperlocal'
+        const matchesTab = (loc.scope || 'hyperlocal') === scope
         return matchesSearch && matchesTab
     })
 
-    const toggleStatus = (id: string) => {
-        setLocations(locations.map(loc =>
-            loc.id === id ? { ...loc, status: loc.status === 'active' ? 'paused' : 'active' } : loc
-        ))
+    const toggleStatus = async (loc: any) => {
+        try {
+            const updated = await api.patch(`/admin/locations/${loc.id}`, {
+                isActive: !loc.isActive
+            })
+            setLocations(locations.map(l => l.id === loc.id ? updated : l))
+        } catch (error) {
+            console.error('Failed to toggle status:', error)
+        }
     }
 
-    const resetPointer = (id: string) => {
-        setLocations(locations.map(loc =>
-            loc.id === id ? { ...loc, pointer: 0 } : loc
-        ))
+    const resetPointer = async (id: string) => {
+        try {
+            await api.post(`/admin/locations/${id}/reset-pointer`, {})
+            const updated = await api.get(`/admin/locations/${id}`)
+            setLocations(locations.map(l => l.id === id ? updated : l))
+        } catch (error) {
+            console.error('Failed to reset pointer:', error)
+        }
     }
 
-    const handleAddLocation = (e: React.FormEvent) => {
+    const handleAddLocation = async (e: React.FormEvent) => {
         e.preventDefault()
-        const id = `loc-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`
-        setLocations([...locations, { ...newLocation, id, businesses: 0, status: 'active', pointer: 0, country: 'UK' }])
-        setIsAddModalOpen(false)
-        setNewLocation({ name: '', city: 'London', type: 'national', postcode: '' })
+        try {
+            await api.post('/admin/locations', {
+                name: newLocation.name,
+                city: newLocation.city,
+                postcode: newLocation.postcode,
+                scope: newLocation.type,
+                rotatorType: 'sequential'
+            })
+            setIsAddModalOpen(false)
+            setNewLocation({ name: '', city: 'London', type: 'national', postcode: '' })
+            await fetchData()
+        } catch (error) {
+            console.error('Failed to create location:', error)
+            alert('Failed to create location. Please check console for details.')
+        }
     }
 
     const openManageModal = (loc: any) => {
         setSelectedLocation(loc)
-        setRotatorConfig(getRotatorConfig(loc.id))
+        const config = loc.rotatorConfig
+        if (config) {
+            setRotatorConfig({
+                ...config,
+                offerSequence: typeof config.offerSequence === 'string'
+                    ? JSON.parse(config.offerSequence)
+                    : config.offerSequence || [],
+                weights: config.weights ? (typeof config.weights === 'string' ? JSON.parse(config.weights) : config.weights) : {},
+                scarcityLimits: config.scarcityLimits ? (typeof config.scarcityLimits === 'string' ? JSON.parse(config.scarcityLimits) : config.scarcityLimits) : {}
+            })
+        }
         setIsManageModalOpen(true)
     }
 
-    const handleSaveConfig = () => {
-        if (rotatorConfig) {
-            saveRotatorConfig(rotatorConfig)
-            setIsManageModalOpen(false)
+    const handleSaveConfig = async () => {
+        if (rotatorConfig && selectedLocation) {
+            try {
+                await api.patch(`/admin/locations/${selectedLocation.id}/rotator`, {
+                    type: rotatorConfig.type,
+                    offerSequence: JSON.stringify(rotatorConfig.offerSequence),
+                    fallbackBehavior: rotatorConfig.fallbackBehavior,
+                    customLink: rotatorConfig.customLink,
+                    weights: JSON.stringify(rotatorConfig.weights || {}),
+                    scarcityLimits: JSON.stringify(rotatorConfig.scarcityLimits || {})
+                })
+                setIsManageModalOpen(false)
+                fetchData()
+            } catch (error) {
+                console.error('Failed to save rotator config:', error)
+            }
         }
     }
 
@@ -100,19 +171,22 @@ export default function LocationManager() {
             window.URL.revokeObjectURL(blobUrl)
         } catch (error) {
             console.error('Download failed', error)
-            // Fallback: Open in new tab
             window.open(url, '_blank')
         }
     }
 
-    const [offerSearchTerm, setOfferSearchTerm] = useState('')
-    const [showAddOfferPanel, setShowAddOfferPanel] = useState(false)
+    const copyToClipboard = (text: string, id: string) => {
+        const fullUrl = `${window.location.origin}${text}`
+        navigator.clipboard.writeText(fullUrl).then(() => {
+            setCopiedId(id)
+            setTimeout(() => setCopiedId(null), 2000)
+        })
+    }
 
     const updateConfig = (updates: Partial<RotatorConfig>) => {
         if (!rotatorConfig) return
         const newConfig = { ...rotatorConfig, ...updates }
         setRotatorConfig(newConfig)
-        saveRotatorConfig(newConfig)
     }
 
     const addOfferToRotator = (offerId: string) => {
@@ -125,7 +199,7 @@ export default function LocationManager() {
 
     const addBusinessToRotator = (businessName: string) => {
         if (!rotatorConfig) return
-        const businessOffers = mockOffers.filter(o => o.businessName === businessName && o.status === 'approved')
+        const businessOffers = allOffers.filter(o => o.businessName === businessName)
         const newIds = businessOffers.map(o => o.id).filter(id => !rotatorConfig.offerSequence.includes(id))
         if (newIds.length === 0) return
         updateConfig({
@@ -142,23 +216,19 @@ export default function LocationManager() {
 
     const moveOffer = (index: number, direction: 'up' | 'down') => {
         if (!rotatorConfig) return
-        const sequence = [...(rotatorConfig.offerSequence.length > 0 ? rotatorConfig.offerSequence : mockOffers.map(o => o.id))]
+        const sequence = [...rotatorConfig.offerSequence]
         const newIndex = direction === 'up' ? index - 1 : index + 1
         if (newIndex < 0 || newIndex >= sequence.length) return
-
         [sequence[index], sequence[newIndex]] = [sequence[newIndex], sequence[index]]
         updateConfig({ offerSequence: sequence })
     }
 
-
     const getOrderedOffers = () => {
         if (!rotatorConfig) return []
-        const sequence = rotatorConfig.offerSequence.length > 0 ? rotatorConfig.offerSequence : offersObj.map(o => o.id)
+        const sequence = rotatorConfig.offerSequence
         const items = sequence
-            .map(id => offersObj.find(o => o.id === id))
+            .map(id => allOffers.find(o => o.id === id))
             .filter((o): o is any => !!o)
-
-        // Sync sorting with engine logic
         return items.sort((a, b) => {
             if (a.isPremium === b.isPremium) return 0
             return a.isPremium ? -1 : 1
@@ -166,13 +236,17 @@ export default function LocationManager() {
     }
 
     const handleTogglePremium = (id: string) => {
-        toggleOfferPremium(id)
-        setOffersObj([...mockOffers])
+        setAllOffers(allOffers.map(o => o.id === id ? { ...o, isPremium: !o.isPremium } : o))
     }
 
+    // 2. Wrap the JSX in a condition instead of returning early
+    if (loading) {
+        return <LoadingScreen />
+    }
 
     return (
         <AdminLayout title="Network Management">
+            {/* Same JSX as before */}
             <div className="db-card" style={{ marginBottom: '2rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', gap: '1rem', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
@@ -255,24 +329,24 @@ export default function LocationManager() {
                                             onClick={() => openManageModal(loc)}
                                         >
                                             {loc.name}
-                                            {loc.type === 'hyperlocal' && (
-                                                <span style={{ fontSize: '0.65rem', background: '#3b82f6', color: '#fff', padding: '1px 4px', borderRadius: '4px' }}>5mi</span>
+                                            {(loc.scope === 'hyperlocal' || loc.type === 'hyperlocal') && (
+                                                <span style={{ fontSize: '0.65rem', background: '#3b82f6', color: '#fff', padding: '1px 4px', borderRadius: '4px' }}>RADIUS</span>
                                             )}
                                         </div>
                                         <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{loc.city}, UK</div>
                                     </td>
                                     <td>
-                                        {loc.type === 'hyperlocal' ? (
+                                        {(loc.scope === 'hyperlocal' || loc.type === 'hyperlocal') ? (
                                             <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', padding: '0.25rem 0.5rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', display: 'inline-block' }}>
                                                 📮 {loc.postcode}
                                             </div>
                                         ) : (
-                                            <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{loc.businesses} Businesses</div>
+                                            <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{loc.businessCount || 0} Businesses</div>
                                         )}
                                     </td>
                                     <td>
-                                        <span className={`db-badge db-badge-${loc.status === 'active' ? 'approved' : 'rejected'}`}>
-                                            {loc.status === 'active' ? 'ACTIVE' : 'PAUSED'}
+                                        <span className={`db-badge db-badge-${loc.isActive ? 'approved' : 'rejected'}`}>
+                                            {loc.isActive ? 'ACTIVE' : 'PAUSED'}
                                         </span>
                                     </td>
                                     <td>
@@ -296,6 +370,35 @@ export default function LocationManager() {
                                                 >
                                                     mcom.links/r/{loc.id}
                                                 </a>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                                                    <button
+                                                        onClick={() => copyToClipboard(`/r/${loc.id}`, loc.id)}
+                                                        style={{
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            padding: 0,
+                                                            color: '#64748b',
+                                                            fontSize: '0.7rem',
+                                                            fontWeight: 700,
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.25rem',
+                                                            transition: 'color 0.2s'
+                                                        }}
+                                                        onMouseEnter={(e) => e.currentTarget.style.color = '#2563eb'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.color = '#64748b'}
+                                                    >
+                                                        {copiedId === loc.id ? (
+                                                            <span style={{ color: '#10b981' }}>✓ Copied</span>
+                                                        ) : (
+                                                            <>
+                                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                                                                Copy Link
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
                                             </div>
                                             <button
                                                 onClick={() => openQRModal(loc)}
@@ -314,8 +417,6 @@ export default function LocationManager() {
                                                     cursor: 'pointer',
                                                     boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                                                 }}
-                                                onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
-                                                onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
                                             >
                                                 <img
                                                     src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '/r/' + loc.id)}`}
@@ -327,9 +428,9 @@ export default function LocationManager() {
                                     </td>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }} title="Pointer: The current offer index being served. Each scan increments this value.">
-                                            <span style={{ fontWeight: 800, color: '#2563eb', cursor: 'help' }}>P-{loc.pointer}</span>
+                                            <span style={{ fontWeight: 800, color: '#2563eb', cursor: 'help' }}>P-{loc.rotatorConfig?.pointer || 0}</span>
                                             <div style={{ width: '60px', height: '4px', background: '#f1f5f9', borderRadius: '2px', overflow: 'hidden' }}>
-                                                <div style={{ width: `${(loc.pointer / 20) * 100}%`, height: '100%', background: '#2563eb' }} />
+                                                <div style={{ width: `${((loc.rotatorConfig?.pointer || 0) / 20) * 100}%`, height: '100%', background: '#2563eb' }} />
                                             </div>
                                         </div>
                                     </td>
@@ -338,16 +439,16 @@ export default function LocationManager() {
                                             <button
                                                 className="db-btn db-btn-ghost"
                                                 style={{ fontSize: '0.75rem', fontWeight: 800 }}
-                                                onClick={() => toggleStatus(loc.id)}
+                                                onClick={() => toggleStatus(loc)}
                                             >
-                                                {loc.status === 'active' ? 'Pause' : 'Activate'}
+                                                {loc.isActive ? 'Pause' : 'Activate'}
                                             </button>
                                             <button
                                                 className="db-btn db-btn-ghost"
                                                 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb' }}
                                                 onClick={() => resetPointer(loc.id)}
                                             >
-                                                Reset Pointer
+                                                Reset P
                                             </button>
                                             <button className="db-btn db-btn-ghost" style={{ padding: '0.4rem' }} onClick={() => openManageModal(loc)}>
                                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
@@ -371,36 +472,51 @@ export default function LocationManager() {
                                 >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                         {loc.name}
-                                        {loc.type === 'hyperlocal' && (
-                                            <span style={{ fontSize: '0.65rem', background: '#3b82f6', color: '#fff', padding: '1px 4px', borderRadius: '4px' }}>5mi</span>
+                                        {(loc.scope === 'hyperlocal' || loc.type === 'hyperlocal') && (
+                                            <span style={{ fontSize: '0.65rem', background: '#3b82f6', color: '#fff', padding: '1px 4px', borderRadius: '4px' }}>RADIUS</span>
                                         )}
                                     </div>
                                     <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{loc.city}, UK</div>
                                 </div>
-                                <span className={`db-badge db-badge-${loc.status === 'active' ? 'approved' : 'rejected'}`}>
-                                    {loc.status === 'active' ? 'ACTIVE' : 'PAUSED'}
+                                <span className={`db-badge db-badge-${loc.isActive ? 'approved' : 'rejected'}`}>
+                                    {loc.isActive ? 'ACTIVE' : 'PAUSED'}
                                 </span>
                             </div>
 
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                                {loc.type === 'hyperlocal' ? (
+                                {(loc.scope === 'hyperlocal' || loc.type === 'hyperlocal') ? (
                                     <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', padding: '0.25rem 0.5rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', display: 'inline-block' }}>
                                         📮 {loc.postcode}
                                     </div>
                                 ) : (
-                                    <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{loc.businesses} Businesses</div>
+                                    <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{loc.businessCount || 0} Businesses</div>
                                 )}
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <span style={{ fontWeight: 800, color: '#2563eb', fontSize: '0.8rem' }}>P-{loc.pointer}</span>
+                                    <span style={{ fontWeight: 800, color: '#2563eb', fontSize: '0.8rem' }}>P-{loc.rotatorConfig?.pointer || 0}</span>
+                                    <button
+                                        onClick={() => copyToClipboard(`/r/${loc.id}`, loc.id)}
+                                        style={{
+                                            background: '#eff6ff',
+                                            border: '1px solid rgba(37, 99, 235, 0.1)',
+                                            padding: '0.25rem 0.5rem',
+                                            borderRadius: '4px',
+                                            color: '#2563eb',
+                                            fontSize: '0.65rem',
+                                            fontWeight: 800,
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        {copiedId === loc.id ? '✓ Copied' : 'Copy Link'}
+                                    </button>
                                 </div>
                             </div>
 
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <button className="db-btn db-btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => toggleStatus(loc.id)}>
-                                    {loc.status === 'active' ? 'Pause' : 'Activate'}
+                                <button className="db-btn db-btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => toggleStatus(loc)}>
+                                    {loc.isActive ? 'Pause' : 'Activate'}
                                 </button>
                                 <button className="db-btn db-btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => openManageModal(loc)}>
-                                    Manage Engine
+                                    Manage
                                 </button>
                             </div>
                         </div>
@@ -594,7 +710,7 @@ export default function LocationManager() {
                                     <h4 style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Engine Stats</h4>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
                                         <span>Active Offers:</span>
-                                        <span style={{ fontWeight: 700 }}>{mockOffers.filter(o => o.isActive).length}</span>
+                                        <span style={{ fontWeight: 700 }}>{allOffers.filter(o => o.isActive).length}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginTop: '0.25rem' }}>
                                         <span>Total Capacity:</span>
@@ -631,7 +747,7 @@ export default function LocationManager() {
 
                                         <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                             {/* Results: Businesses */}
-                                            {Array.from(new Set(mockOffers.map(o => o.businessName))).filter(b => b.toLowerCase().includes(offerSearchTerm.toLowerCase())).slice(0, 3).map(business => (
+                                            {Array.from(new Set(allOffers.map(o => o.businessName))).filter(b => (b?.toLowerCase() || '').includes(offerSearchTerm.toLowerCase())).slice(0, 3).map(business => (
                                                 <div key={business} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
                                                     <div>
                                                         <div style={{ fontSize: '0.75rem', fontWeight: 800 }}>🏢 {business}</div>
@@ -642,7 +758,7 @@ export default function LocationManager() {
                                             ))}
 
                                             {/* Results: Offers */}
-                                            {mockOffers.filter(o => o.status === 'approved' && (o.headline.toLowerCase().includes(offerSearchTerm.toLowerCase()) || o.businessName.toLowerCase().includes(offerSearchTerm.toLowerCase())) && !rotatorConfig.offerSequence.includes(o.id)).slice(0, 6).map(offer => (
+                                            {allOffers.filter(o => ((o.headline?.toLowerCase() || '').includes(offerSearchTerm.toLowerCase()) || (o.businessName?.toLowerCase() || '').includes(offerSearchTerm.toLowerCase())) && !rotatorConfig.offerSequence.includes(o.id)).slice(0, 6).map(offer => (
                                                 <div key={offer.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
                                                     <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                                                         <img src={offer.imageUrl} style={{ width: '24px', height: '24px', borderRadius: '4px' }} alt="" />
@@ -655,7 +771,7 @@ export default function LocationManager() {
                                                 </div>
                                             ))}
 
-                                            {offerSearchTerm && mockOffers.filter(o => o.status === 'approved' && o.headline.toLowerCase().includes(offerSearchTerm.toLowerCase())).length === 0 && (
+                                            {offerSearchTerm && allOffers.filter(o => (o.headline?.toLowerCase() || '').includes(offerSearchTerm.toLowerCase())).length === 0 && (
                                                 <div style={{ textAlign: 'center', padding: '1rem', fontSize: '0.75rem', color: '#94a3b8' }}>No matches found.</div>
                                             )}
                                         </div>
@@ -713,10 +829,10 @@ export default function LocationManager() {
                                                     </div>
                                                     <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem' }}>
                                                         <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 700 }}>
-                                                            👁️ {(offer.performance.scans + getOfferStats(offer.id).scans).toLocaleString()} Scans
+                                                            👁️ {(offer.performance?.scans || 0).toLocaleString()} Scans
                                                         </span>
                                                         <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700 }}>
-                                                            ✅ {(offer.performance.claims + getOfferStats(offer.id).clicks).toLocaleString()} Clicks
+                                                            ✅ {(offer.performance?.claims || 0).toLocaleString()} Clicks
                                                         </span>
                                                     </div>
                                                 </div>

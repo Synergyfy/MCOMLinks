@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import AgentLayout from '../../components/AgentLayout'
+import { api } from '../../api/apiClient'
+import Modal from '../../components/Modal'
 
 export default function OnboardingPage() {
     const [step, setStep] = useState(1)
@@ -15,6 +17,9 @@ export default function OnboardingPage() {
         address: ''
     })
     const [isSearchingPostcode, setIsSearchingPostcode] = useState(false)
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [onboardedBusiness, setOnboardedBusiness] = useState<any>(null)
 
     const handleNext = () => setStep(step + 1)
     const handleBack = () => setStep(step - 1)
@@ -41,13 +46,32 @@ export default function OnboardingPage() {
         }
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        // Simulate delay for a more 'premium' feel
+        setError(null)
+        setIsLoading(true)
         setStep(100) // loading state
-        setTimeout(() => {
+
+        try {
+            const payload = {
+                name: formData.businessName,
+                email: formData.email,
+                ownerName: formData.contactPerson,
+                contactPhone: formData.phone,
+                address: formData.address,
+                plan: formData.planType,
+                description: `Onboarded at ${formData.assignedZone}`
+            }
+
+            const response = await api.post<any>('/agent/onboard', payload)
+            setOnboardedBusiness(response.business)
             setStep(4) // Confirmation step
-        }, 1200)
+        } catch (err: any) {
+            setError(err.message || 'Failed to onboard business')
+            setStep(3) // Return to review step to show error
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     return (
@@ -280,8 +304,10 @@ export default function OnboardingPage() {
                         </div>
 
                         <div className="db-grid-stack" style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-                            <button className="db-btn db-btn-ghost" style={{ flex: 1, padding: '1rem', justifyContent: 'center' }} onClick={handleBack}>Edit Details</button>
-                            <button className="db-btn db-btn-primary" style={{ flex: 2, padding: '1rem', justifyContent: 'center' }} onClick={handleSubmit}>Onboard Merchant</button>
+                            <button className="db-btn db-btn-ghost" style={{ flex: 1, padding: '1rem', justifyContent: 'center' }} onClick={handleBack} disabled={isLoading}>Edit Details</button>
+                            <button className="db-btn db-btn-primary" style={{ flex: 2, padding: '1rem', justifyContent: 'center' }} onClick={handleSubmit} disabled={isLoading}>
+                                {isLoading ? 'Processing...' : 'Onboard Merchant'}
+                            </button>
                         </div>
                     </div>
                 )}
@@ -303,10 +329,28 @@ export default function OnboardingPage() {
                         }}>
                             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                         </div>
-                        <h2 className="db-card-title" style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Welcome, {formData.businessName}!</h2>
-                        <p style={{ color: '#64748b', fontSize: '1rem', maxWidth: '400px', margin: '0 auto 2.5rem', lineHeight: '1.6' }}>
-                            The onboard request for <b>{formData.businessName}</b> has been sent to the System Admin. Deployment is pending verification.
+                        <h2 className="db-card-title" style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Welcome, {onboardedBusiness?.name || formData.businessName}!</h2>
+                        <p style={{ color: '#64748b', fontSize: '1rem', maxWidth: '400px', margin: '0 auto 1.5rem', lineHeight: '1.6' }}>
+                            The onboard request for <b>{onboardedBusiness?.name || formData.businessName}</b> has been processed successfully.
                         </p>
+
+                        <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '1rem', border: '1px solid #e2e8f0', marginBottom: '2.5rem', textAlign: 'left' }}>
+                            <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Business Credentials</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Login Email:</span>
+                                    <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{onboardedBusiness?.email}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Temp Password:</span>
+                                    <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#2563eb' }}>{onboardedBusiness?.temporaryPassword || 'ChangeMe123!'}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Business ID:</span>
+                                    <span style={{ fontWeight: 700, fontSize: '0.85rem', fontFamily: 'monospace' }}>{onboardedBusiness?.id}</span>
+                                </div>
+                            </div>
+                        </div>
                         <div className="db-grid-stack" style={{ display: 'flex', gap: '1rem' }}>
                             <button className="db-btn db-btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setStep(1)}>Back to Dashboard</button>
                             <button className="db-btn db-btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => {
@@ -321,6 +365,16 @@ export default function OnboardingPage() {
                     </div>
                 )}
             </div>
+
+            {/* Error Modal */}
+            <Modal 
+                isOpen={!!error} 
+                onClose={() => setError(null)} 
+                title="Onboarding Conflict" 
+                type="error"
+            >
+                {error}
+            </Modal>
         </AgentLayout>
     )
 }

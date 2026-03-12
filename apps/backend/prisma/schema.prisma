@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String           @id @default(uuid())
+  email              String           @unique
+  password           String
+  name               String?
+  role               String           @default("BUSINESS")
+  businessProfile    BusinessProfile?
+  managingBusinesses BusinessProfile[] @relation("AgentBusinesses")
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+}
+
+model Activity {
+  id            String   @id @default(uuid())
+  type          String // 'SCAN', 'CLAIM', 'REDEMPTION', 'VIEW', 'DIRECTIONS'
+  description   String
+  visitorId     String   @default("Anonymous")
+  interestScore String   @default("medium")
+  device        String   @default("Unknown")
+  offerId       String?
+  offer         Offer?   @relation(fields: [offerId], references: [id])
+  createdAt     DateTime @default(now())
+}
+
+model Offer {
+  id              String        @id @default(uuid())
+  businessName    String        @default("Unknown Business")
+  headline        String
+  description     String
+  imageUrl        String
+  scans           Int           @default(0)
+  claims          Int           @default(0)
+  activeViewers   Int           @default(0)
+  startDate       DateTime      @default(now())
+  endDate         DateTime
+  ctaLabel        String        @default("Claim Offer") // e.g. "Save to Phone", "WhatsApp", "Getting Here"
+  ctaType         String        @default("claim") // claim, redeem, redirect
+  leadDestination String        @default("") // e.g. URL, Phone number, Email
+  redemptionCode  String?
+  mediaType       String        @default("image") // image, video
+  status          String        @default("draft") // draft, submitted, approved, rejected, expired
+  rejectionReason String?
+  visibility      String        @default("national") // national, hyperlocal
+  targetPostcode  String?
+  isPremium       Boolean       @default(false)
+  seasonId        String?
+  season          SeasonalRule? @relation(fields: [seasonId], references: [id])
+  activities      Activity[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model SupportMessage {
+  id        String   @id @default(uuid())
+  text      String
+  sender    String // 'user' or 'agent'
+  time      String // Using string for now to match frontend mock "Yesterday, 2:30 PM", or we could use DateTime
+  userId    String? // Optional for now, link to User if needed later
+  createdAt DateTime @default(now())
+}
+
+model BusinessProfile {
+  id                 String  @id @default(uuid())
+  name               String
+  description        String
+  logoUrl            String?
+  contactEmail       String
+  contactPhone       String?
+  address            String?
+  primaryColor       String  @default("#2563eb")
+  secondaryColor     String  @default("#f8fafc")
+  ownerName          String  @default("")
+  plan               String  @default("Basic") // Basic, Premium
+  subscriptionStatus String  @default("active") // active, suspended
+  user               User    @relation(fields: [userId], references: [id])
+  userId             String  @unique
+  agent              User?   @relation("AgentBusinesses", fields: [agentId], references: [id])
+  agentId            String?
+}
+
+model Location {
+  id            String         @id @default(uuid())
+  slug          String         @unique
+  name          String
+  campaignName  String
+  address       String
+  city          String?
+  postcode      String?
+  scope         String         @default("hyperlocal") // national, hyperlocal
+  isActive      Boolean        @default(true)
+  rotatorConfig RotatorConfig?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model RotatorConfig {
+  id               String   @id @default(uuid())
+  locationId       String   @unique
+  location         Location @relation(fields: [locationId], references: [id])
+  type             String   @default("sequential") // sequential, random, scarcity, split
+  fallbackBehavior String   @default("default") // default, link, expired
+  customLink       String?
+  offerSequence    String   @default("[]") // JSON array of offer IDs
+  weights          String   @default("{}") // JSON object
+  scarcityLimits   String   @default("{}") // JSON object
+  pointer          Int      @default(0) // Current rotation pointer
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model SystemLog {
+  id        String   @id @default(uuid())
+  type      String // error, warning, info
+  message   String
+  source    String   @default("system") // system, admin_user
+  timestamp DateTime @default(now())
+}
+
+model GlobalConfig {
+  id             String   @id @default("global-settings")
+  emergencyPause Boolean  @default(false)
+  priorityRule   String   @default("override") // override, intermittent
+  brandColor     String   @default("#0a0a0a")
+  headerText     String   @default("Supporting Local Business")
+  footerText     String   @default("Powered by MCOMLinks System")
+  showSocials    Boolean  @default(true)
+  updatedAt      DateTime @updatedAt
+}
+
+model SeasonalRule {
+  id        String   @id @default(uuid())
+  name      String // e.g., "Winter 2026", "Black Friday"
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(true)
+  offers    Offer[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

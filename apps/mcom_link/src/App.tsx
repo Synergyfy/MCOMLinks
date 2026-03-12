@@ -96,13 +96,13 @@ function App() {
             ))}
             <div className="mobile-auth">
               <Link to="/login" className="btn-ghost" onClick={() => setIsMenuOpen(false)}>Sign In</Link>
-              <Link to="/login" className="btn-premium" onClick={() => setIsMenuOpen(false)}>Get Started</Link>
+              <Link to="/signup" className="btn-premium" onClick={() => setIsMenuOpen(false)}>Get Started</Link>
             </div>
           </div>
 
           <div className="desktop-auth">
             <Link to="/login" className="btn-ghost" style={{ textDecoration: 'none' }}>Sign In</Link>
-            <Link to="/login" className="btn-premium" style={{ textDecoration: 'none' }}>
+            <Link to="/signup" className="btn-premium" style={{ textDecoration: 'none' }}>
               Get Started <ArrowRight />
             </Link>
           </div>
@@ -124,7 +124,7 @@ function App() {
               automated, sequential offer rotation and real-time engagement analytics.
             </p>
             <div className="hero-ctas">
-              <Link to="/login" className="btn-premium" style={{ padding: '0.85rem 2rem', fontSize: '0.95rem', textDecoration: 'none' }}>
+              <Link to="/signup" className="btn-premium" style={{ padding: '0.85rem 2rem', fontSize: '0.95rem', textDecoration: 'none' }}>
                 Launch Your Rotator <ArrowRight />
               </Link>
               <button className="btn-ghost" style={{ padding: '0.85rem 2rem', fontSize: '0.95rem', display: 'flex', alignItems: 'center' }}>
@@ -237,7 +237,7 @@ function App() {
             Join the thousands of businesses already using MCOMLINKS to automate their marketing machine.
           </p>
           <div className="hero-ctas" style={{ justifyContent: 'center' }}>
-            <Link to="/login" className="btn-premium" style={{ padding: '1.1rem 3rem', fontSize: '1.05rem', textDecoration: 'none' }}>
+            <Link to="/signup" className="btn-premium" style={{ padding: '1.1rem 3rem', fontSize: '1.05rem', textDecoration: 'none' }}>
               Start Your Journey <ArrowRight />
             </Link>
           </div>
@@ -257,7 +257,7 @@ function App() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <a href="#" className="nav-link">The Rotator</a>
                 <a href="#" className="nav-link">For Businesses</a>
-                <a href="#" className="nav-link">For Agents</a>
+                <Link to="/agent" className="nav-link">For Agents</Link>
               </div>
             </div>
             <div>

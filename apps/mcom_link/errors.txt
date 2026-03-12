@@ -1,0 +1,7 @@
+src/pages/dashboard/OffersPage.tsx(3,10): error TS6133: 'mockOffers' is declared but its value is never read.
+src/pages/dashboard/OffersPage.tsx(7,1): error TS6133: 'EngagementActivity' is declared but its value is never read.
+src/pages/dashboard/OffersPage.tsx(52,13): error TS2304: Cannot find name 'setMockActivities'.
+src/pages/dashboard/OffersPage.tsx(56,13): error TS2304: Cannot find name 'setMockActivities'.
+src/pages/dashboard/OffersPage.tsx(583,46): error TS2304: Cannot find name 'mockActivities'.
+src/pages/dashboard/OffersPage.tsx(585,49): error TS2304: Cannot find name 'mockActivities'.
+src/pages/dashboard/OffersPage.tsx(585,69): error TS7006: Parameter 'act' implicitly has an 'any' type.

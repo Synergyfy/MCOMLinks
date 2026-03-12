@@ -1,12 +1,67 @@
 import DashboardLayout from '../../components/DashboardLayout'
 import { mockBusiness } from '../../mock/business'
+import { useState, useEffect, useRef } from 'react'
+import { api } from '../../api/apiClient'
+
+interface Message {
+    id: string;
+    text: string;
+    sender: 'agent' | 'user';
+    time: string;
+}
 
 export default function SupportPage() {
-    const messages = [
-        { sender: 'agent', text: "Hi Isabella! I noticed your Spring Collection offer is performing great. Would you like to try boosting it for next weekend?", time: "Yesterday, 2:30 PM" },
-        { sender: 'user', text: "That sounds good James! How much would a 3-day boost cost?", time: "Yesterday, 4:15 PM" },
-        { sender: 'agent', text: "For your plan, it's just £49 for a Friday-Sunday peak boost. I can set it up for you if you approve!", time: "Today, 9:05 AM" }
-    ]
+    const [messages, setMessages] = useState<Message[]>([])
+    const [loading, setLoading] = useState(true)
+    const [newMessage, setNewMessage] = useState('')
+    const [sending, setSending] = useState(false)
+    const chatEndRef = useRef<HTMLDivElement>(null)
+
+    const fetchMessages = async () => {
+        try {
+            const data = await api.get<Message[]>('/dashboard/support/messages')
+            if (Array.isArray(data)) {
+                setMessages(data)
+            }
+        } catch (err) {
+            console.error("Failed to fetch support messages:", err)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        fetchMessages()
+    }, [])
+
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, [messages])
+
+    const handleSendMessage = async (e?: React.FormEvent) => {
+        e?.preventDefault()
+        if (!newMessage.trim() || sending) return
+
+        setSending(true)
+        try {
+            const data = await api.post<Message>('/dashboard/support/messages', {
+                text: newMessage,
+                sender: 'user',
+            })
+            // Let's add it to state directly to avoid a full fetch delay
+            setMessages(prev => [...prev, data])
+            setNewMessage('')
+        } catch (err) {
+            console.error("Failed to send message:", err)
+            alert("Failed to send message.")
+        } finally {
+            setSending(false)
+        }
+    }
+
+    const handleQuickSupport = (msg: string) => {
+        setNewMessage(msg)
+    }
 
     return (
         <DashboardLayout title="Agent Support">
@@ -25,7 +80,11 @@ export default function SupportPage() {
                     </div>
 
                     <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', background: '#f8fafc' }}>
-                        {messages.map((m, i) => (
+                        {loading ? (
+                            <div style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem' }}>Loading messages...</div>
+                        ) : messages.length === 0 ? (
+                            <div style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem' }}>No messages yet. Send a message to start chatting!</div>
+                        ) : messages.map((m: any, i: number) => (
                             <div key={i} style={{
                                 alignSelf: m.sender === 'agent' ? 'flex-start' : 'flex-end',
                                 maxWidth: '85%',
@@ -47,13 +106,25 @@ export default function SupportPage() {
                                 <span style={{ fontSize: '0.65rem', color: '#94a3b8', alignSelf: m.sender === 'agent' ? 'flex-start' : 'flex-end' }}>{m.time}</span>
                             </div>
                         ))}
+                        <div ref={chatEndRef} />
                     </div>
 
                     <div style={{ padding: '1.25rem', borderTop: '1px solid #f1f5f9' }}>
-                        <div style={{ display: 'flex', gap: '0.75rem' }}>
-                            <input type="text" className="db-input" style={{ flex: 1 }} placeholder="Type a message..." />
-                            <button className="db-btn db-btn-primary" style={{ padding: '0.65rem 1rem' }}>Send</button>
-                        </div>
+                        <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '0.75rem' }}>
+                            <input
+                                type="text"
+                                className="db-input"
+                                style={{ flex: 1 }}
+                                placeholder="Type a message..."
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                disabled={sending}
+                                required
+                            />
+                            <button type="submit" className="db-btn db-btn-primary" style={{ padding: '0.65rem 1rem' }} disabled={sending || !newMessage.trim()}>
+                                {sending ? 'Sending...' : 'Send'}
+                            </button>
+                        </form>
                     </div>
                 </div>
 
@@ -79,9 +150,9 @@ export default function SupportPage() {
                     <div className="db-card" style={{ border: '2px dashed #e2e8f0', background: 'transparent' }}>
                         <h3 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', fontWeight: 800 }}>Quick Support</h3>
                         <div style={{ display: 'grid', gap: '0.75rem' }}>
-                            <button className="db-btn db-btn-ghost" style={{ justifyContent: 'flex-start', fontSize: '0.8rem', padding: '0.5rem 1rem' }}>🚀 Request a Boost</button>
-                            <button className="db-btn db-btn-ghost" style={{ justifyContent: 'flex-start', fontSize: '0.8rem', padding: '0.5rem 1rem' }}>📈 Copywriting Advice</button>
-                            <button className="db-btn db-btn-ghost" style={{ justifyContent: 'flex-start', fontSize: '0.8rem', padding: '0.5rem 1rem' }}>💎 Plan Upgrade</button>
+                            <button onClick={() => handleQuickSupport("🚀 Request a Boost")} className="db-btn db-btn-ghost" style={{ justifyContent: 'flex-start', fontSize: '0.8rem', padding: '0.5rem 1rem' }}>🚀 Request a Boost</button>
+                            <button onClick={() => handleQuickSupport("📈 Copywriting Advice")} className="db-btn db-btn-ghost" style={{ justifyContent: 'flex-start', fontSize: '0.8rem', padding: '0.5rem 1rem' }}>📈 Copywriting Advice</button>
+                            <button onClick={() => handleQuickSupport("💎 Plan Upgrade")} className="db-btn db-btn-ghost" style={{ justifyContent: 'flex-start', fontSize: '0.8rem', padding: '0.5rem 1rem' }}>💎 Plan Upgrade</button>
                         </div>
                     </div>
                 </div>

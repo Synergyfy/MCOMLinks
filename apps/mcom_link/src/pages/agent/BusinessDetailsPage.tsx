@@ -1,26 +1,31 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import AgentLayout from '../../components/AgentLayout'
-import { mockCommLogs, type CommLog } from '../../mock/agents'
-import { mockOffers } from '../../mock/offers'
+import { api } from '../../api/apiClient'
+import { type CommLog } from '../../mock/agents'
 
 export default function BusinessDetailsPage() {
     const { id } = useParams()
-    const [logs, setLogs] = useState<CommLog[]>(mockCommLogs.filter(l => l.businessId === id))
+    const [businessData, setBusinessData] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
     const [newNote, setNewNote] = useState('')
 
-    // Simulate business data fetching
-    const business = {
-        id: id,
-        name: "Bella's Boutique",
-        owner: "Isabella Rossi",
-        email: "isabella@bellas.com",
-        phone: "+44 7700 900011",
-        plan: "Premium",
-        joined: "Oct 2025"
-    }
+    useEffect(() => {
+        const fetchBusinessDetail = async () => {
+            try {
+                const data = await api.get<any>(`/agent/business/${id}`)
+                setBusinessData(data)
+            } catch (err) {
+                console.error('Failed to fetch business details:', err)
+                setError('Failed to load business details.')
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchBusinessDetail()
+    }, [id])
 
-    const businessOffers = mockOffers.filter(o => o.businessName === business.name)
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
     const [newOffer, setNewOffer] = useState({
         headline: '',
@@ -32,6 +37,21 @@ export default function BusinessDetailsPage() {
         isPremium: false,
         season: 'all' as any
     })
+
+    if (loading) return (
+        <AgentLayout title="Loading...">
+            <div style={{ textAlign: 'center', padding: '4rem' }}>Loading business details...</div>
+        </AgentLayout>
+    )
+
+    if (error || !businessData) return (
+        <AgentLayout title="Error">
+            <div style={{ textAlign: 'center', padding: '4rem', color: '#ef4444' }}>{error || 'Business not found'}</div>
+        </AgentLayout>
+    )
+
+    const { business, performance, offers } = businessData
+    const [logs, setLogs] = useState<CommLog[]>([]) // Backend doesn't return logs yet, keeping it as state for now
 
     const handleAddLog = (e: React.FormEvent) => {
         e.preventDefault()
@@ -87,7 +107,17 @@ export default function BusinessDetailsPage() {
                                 <span className="db-badge db-badge-approved" style={{ fontSize: '0.7rem' }}>{business.plan}</span>
                             </div>
                         </div>
-                        <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.5rem' }}>
+                        <div style={{ marginTop: '1.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                            <div className="db-stat-card" style={{ padding: '0.75rem', textAlign: 'center' }}>
+                                <div style={{ fontSize: '0.65rem', color: '#64748b' }}>Scans</div>
+                                <div style={{ fontWeight: 800, fontSize: '1rem' }}>{performance.totalScans}</div>
+                            </div>
+                            <div className="db-stat-card" style={{ padding: '0.75rem', textAlign: 'center' }}>
+                                <div style={{ fontSize: '0.65rem', color: '#64748b' }}>Claims</div>
+                                <div style={{ fontWeight: 800, fontSize: '1rem' }}>{performance.totalClaims}</div>
+                            </div>
+                        </div>
+                        <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
                             <button className="db-btn db-btn-ghost" style={{ flex: 1, justifyContent: 'center', fontSize: '0.8rem' }}>Edit Account</button>
                             <button className="db-btn db-btn-ghost" style={{ flex: 1, justifyContent: 'center', fontSize: '0.8rem', color: '#ef4444' }}>Suspend</button>
                         </div>
@@ -145,13 +175,13 @@ export default function BusinessDetailsPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {businessOffers.map(offer => (
+                                    {offers.map((offer: any) => (
                                         <tr key={offer.id}>
                                             <td><div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{offer.headline}</div></td>
                                             <td><span className={`db-badge db-badge-${offer.status}`}>{offer.status}</span></td>
                                             <td>
                                                 <div style={{ fontSize: '0.8rem' }}>
-                                                    <b>{offer.performance.scans}</b> scans
+                                                    <b>{offer.scans || 0}</b> scans
                                                 </div>
                                             </td>
                                             <td style={{ textAlign: 'right' }}>

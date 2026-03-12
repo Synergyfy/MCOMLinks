@@ -1,21 +1,52 @@
 import DashboardLayout from '../../components/DashboardLayout'
-import { mockMetrics } from '../../mock/business'
-import { mockOffers, type EngagementActivity } from '../../mock/offers'
-import { mockBusiness } from '../../mock/business'
-import { useState } from 'react'
-
-// Mock generator for aggregate analytics feed
-const generateAggregateFeed = (): EngagementActivity[] => {
-    return [
-        { id: '1', visitorId: 'Profile #A7B2', type: 'directions', timestamp: new Date().toISOString(), interestScore: 'high', device: 'iPhone 15' },
-        { id: '2', visitorId: 'sarah@email.com', type: 'claim', timestamp: new Date(Date.now() - 3600000).toISOString(), interestScore: 'verified', device: 'Android v14' },
-        { id: '3', visitorId: 'Profile #99F1', type: 'view', timestamp: new Date(Date.now() - 7200000).toISOString(), interestScore: 'medium', device: 'iPhone 13' }
-    ]
-}
+import { useState, useEffect } from 'react'
+import { api } from '../../api/apiClient'
 
 export default function AnalyticsPage() {
-    const myOffers = mockOffers.filter(o => o.businessName === mockBusiness.name && o.status === 'approved')
-    const [recentFeed] = useState(generateAggregateFeed())
+    const [data, setData] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const fetchAnalytics = async () => {
+            try {
+                const res = await api.get<any>('/dashboard/analytics')
+                setData(res)
+            } catch (err) {
+                console.error("Failed to load analytics:", err)
+                setData(null)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchAnalytics()
+    }, [])
+
+    if (loading) {
+        return (
+            <DashboardLayout title="Performance Analytics">
+                <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>Loading analytics...</div>
+            </DashboardLayout>
+        )
+    }
+
+    if (!data) {
+        return (
+            <DashboardLayout title="Performance Analytics">
+                <div style={{ padding: '3rem', textAlign: 'center', color: '#e11d48' }}>Failed to load analytics data.</div>
+            </DashboardLayout>
+        )
+    }
+
+    const { totalScans, totalClaims, conversionRate, timeline, topOffers, recentEngagement } = data
+
+    // Helper to format date string to short day name (e.g., 'Mon')
+    const getShortDay = (dateStr: string) => {
+        const d = new Date(dateStr)
+        return d.toLocaleDateString('en-US', { weekday: 'short' })
+    }
+
+    // Find max scans for scaling the chart
+    const maxScans = Math.max(...timeline.map((t: any) => t.scans), 1) // Prevent division by zero
 
     return (
         <DashboardLayout title="Performance Analytics">
@@ -30,7 +61,9 @@ export default function AnalyticsPage() {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {recentFeed.map(act => (
+                    {recentEngagement.length === 0 ? (
+                        <div style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem' }}>No recent engagement.</div>
+                    ) : recentEngagement.map((act: any) => (
                         <div key={act.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', borderLeft: `3px solid ${act.interestScore === 'verified' ? '#2563eb' : '#e2e8f0'}`, background: '#fff', borderRadius: '0 0.5rem 0.5rem 0' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                 <div style={{ fontSize: '1rem' }}>{act.interestScore === 'verified' ? '👤' : '👻'}</div>
@@ -44,7 +77,7 @@ export default function AnalyticsPage() {
                             <div style={{ textAlign: 'right' }}>
                                 <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8' }}>{new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                 <span style={{ fontSize: '0.6rem', fontWeight: 800, color: act.interestScore === 'verified' ? '#2563eb' : '#475569' }}>
-                                    {act.interestScore.toUpperCase()} {act.interestScore === 'verified' ? '💎' : ''}
+                                    {act.interestScore?.toUpperCase() || 'LOW'} {act.interestScore === 'verified' ? '💎' : ''}
                                 </span>
                             </div>
                         </div>
@@ -55,18 +88,18 @@ export default function AnalyticsPage() {
             {/* 1. Global Metrics Summary */}
             <div className="db-stats-grid">
                 <div className="db-stat-card">
-                    <div className="db-stat-label">Total Monthly Scans</div>
-                    <div className="db-stat-value">{mockMetrics.totalScans}</div>
-                    <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.7rem', color: '#475569' }}>All active locations</p>
+                    <div className="db-stat-label">Total Scans (All Time)</div>
+                    <div className="db-stat-value">{totalScans}</div>
+                    <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.7rem', color: '#475569' }}>Across all offers</p>
                 </div>
                 <div className="db-stat-card" style={{ borderLeft: '4px solid #2563eb' }}>
-                    <div className="db-stat-label">Total Claims</div>
-                    <div className="db-stat-value">{mockMetrics.totalClaims}</div>
+                    <div className="db-stat-label">Total Claims (All Time)</div>
+                    <div className="db-stat-value">{totalClaims}</div>
                     <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.7rem', color: '#475569' }}>Customers who acted</p>
                 </div>
                 <div className="db-stat-card">
                     <div className="db-stat-label">Avg. Conversion</div>
-                    <div className="db-stat-value">{mockMetrics.conversionRate}%</div>
+                    <div className="db-stat-value">{conversionRate}%</div>
                     <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.7rem', color: '#475569' }}>Scan-to-Claim rate</p>
                 </div>
             </div>
@@ -75,35 +108,34 @@ export default function AnalyticsPage() {
             <div className="db-card" style={{ marginBottom: '1.5rem', overflow: 'hidden' }}>
                 <h2 className="db-card-title" style={{ marginBottom: '1rem' }}>Scan History (Last 7 Days)</h2>
                 <div style={{ height: '200px', display: 'flex', alignItems: 'flex-end', gap: '0.5rem', padding: '0.5rem 0', borderBottom: '1px solid #f1f5f9' }}>
-                    {[
-                        { day: 'Mon', val: 45 }, { day: 'Tue', val: 52 }, { day: 'Wed', val: 38 },
-                        { day: 'Thu', val: 65 }, { day: 'Fri', val: 89 }, { day: 'Sat', val: 120 }, { day: 'Sun', val: 95 }
-                    ].map((d, i) => (
-                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem', minWidth: 0 }}>
-                            <span style={{ fontSize: '0.6rem', fontWeight: 800, color: d.day === 'Sat' ? '#2563eb' : '#94a3b8' }}>{d.val}</span>
-                            <div
-                                style={{
-                                    width: '100%',
-                                    maxWidth: '48px',
-                                    height: `${(d.val / 120) * 100}%`,
-                                    background: d.day === 'Sat' ? '#2563eb' : '#e2e8f0',
-                                    borderRadius: '0.4rem 0.4rem 0 0',
-                                    transition: 'height 1s ease',
-                                    minHeight: '4px'
-                                }}
-                            />
-                            <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8' }}>{d.day}</span>
-                        </div>
-                    ))}
+                    {timeline && timeline.length > 0 ? timeline.map((d: any, i: number) => {
+                        const dayName = getShortDay(d.date);
+                        return (
+                            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem', minWidth: 0 }}>
+                                <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8' }}>{d.scans > 0 ? d.scans : ''}</span>
+                                <div
+                                    style={{
+                                        width: '100%',
+                                        maxWidth: '48px',
+                                        height: d.scans > 0 ? `${(d.scans / maxScans) * 100}%` : '4px',
+                                        background: d.scans === maxScans && d.scans > 0 ? '#2563eb' : '#e2e8f0',
+                                        borderRadius: '0.4rem 0.4rem 0 0',
+                                        transition: 'height 1s ease',
+                                        minHeight: '4px'
+                                    }}
+                                />
+                                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8' }}>{dayName}</span>
+                            </div>
+                        )
+                    }) : (
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>No data for the last 7 days.</div>
+                    )}
                 </div>
-                <p style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#475569' }}>
-                    💡 <b>Tip:</b> Traffic peaks on <b>Saturdays</b>. Try weekend-only offers!
-                </p>
             </div>
 
             {/* 3. Per-Offer Breakdown — Desktop Table */}
             <div className="db-card desktop-only">
-                <h2 className="db-card-title" style={{ marginBottom: '1.5rem' }}>Performance per Offer</h2>
+                <h2 className="db-card-title" style={{ marginBottom: '1.5rem' }}>Top Offers Performance</h2>
                 <div className="db-table-wrapper">
                     <table className="db-table">
                         <thead>
@@ -116,15 +148,17 @@ export default function AnalyticsPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {myOffers.map(offer => {
-                                const rate = offer.performance.scans > 0
-                                    ? ((offer.performance.claims / offer.performance.scans) * 100).toFixed(1)
+                            {topOffers.length === 0 ? (
+                                <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No offers yet.</td></tr>
+                            ) : topOffers.map((offer: any) => {
+                                const rate = offer.scans > 0
+                                    ? ((offer.claims / offer.scans) * 100).toFixed(1)
                                     : "0.0";
                                 return (
                                     <tr key={offer.id}>
                                         <td><div style={{ fontWeight: 700 }}>{offer.headline}</div></td>
-                                        <td>{offer.performance.scans}</td>
-                                        <td>{offer.performance.claims}</td>
+                                        <td>{offer.scans}</td>
+                                        <td>{offer.claims}</td>
                                         <td><b>{rate}%</b></td>
                                         <td>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -144,10 +178,12 @@ export default function AnalyticsPage() {
 
             {/* 3b. Per-Offer Breakdown — Mobile Cards */}
             <div className="mobile-only">
-                <h2 className="db-card-title" style={{ marginBottom: '1rem' }}>Performance per Offer</h2>
-                {myOffers.map(offer => {
-                    const rate = offer.performance.scans > 0
-                        ? ((offer.performance.claims / offer.performance.scans) * 100).toFixed(1)
+                <h2 className="db-card-title" style={{ marginBottom: '1rem' }}>Top Offers Performance</h2>
+                {topOffers.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No offers yet.</div>
+                ) : topOffers.map((offer: any) => {
+                    const rate = offer.scans > 0
+                        ? ((offer.claims / offer.scans) * 100).toFixed(1)
                         : "0.0";
                     return (
                         <div key={offer.id} className="db-offer-card-mobile" style={{ marginBottom: '0.75rem' }}>
@@ -155,11 +191,11 @@ export default function AnalyticsPage() {
                             <div className="db-offer-card-mobile-stats">
                                 <div style={{ textAlign: 'center' }}>
                                     <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.15rem' }}>Scans</div>
-                                    <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>{offer.performance.scans}</div>
+                                    <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>{offer.scans}</div>
                                 </div>
                                 <div style={{ textAlign: 'center' }}>
                                     <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.15rem' }}>Claims</div>
-                                    <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>{offer.performance.claims}</div>
+                                    <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>{offer.claims}</div>
                                 </div>
                                 <div style={{ textAlign: 'center' }}>
                                     <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.15rem' }}>Rate</div>

@@ -1,12 +1,58 @@
+import { useEffect, useState } from 'react'
 import AgentLayout from '../../components/AgentLayout'
-import { mockPortfolio } from '../../mock/agents'
 import { Link } from 'react-router-dom'
+import { api } from '../../api/apiClient'
 
 export default function AgentDashboard() {
-    const { targets } = mockPortfolio
+    const [stats, setStats] = useState<any>(null)
+    const [urgentActions, setUrgentActions] = useState<any[]>([])
+    const [leaderboard, setLeaderboard] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
 
-    const progressPercent = (targets.newBusinesses / targets.newBusinessesGoal) * 100
-    const activePercent = (targets.activeOffers / targets.activeOffersGoal) * 100
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                const [statsRes, actionsRes, leaderboardRes] = await Promise.all([
+                    api.get<any>('/agent/dashboard/stats'),
+                    api.get<any>('/agent/dashboard/urgent-actions'),
+                    api.get<any>('/agent/dashboard/leaderboard')
+                ])
+
+                setStats(statsRes)
+                setUrgentActions(actionsRes.urgentActions || [])
+                setLeaderboard(leaderboardRes.leaderboard || [])
+            } catch (error) {
+                console.error('Failed to fetch dashboard data:', error)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchDashboardData()
+    }, [])
+
+    if (loading) {
+        return (
+            <AgentLayout title="Portfolio Overview">
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+                    <div className="loader">Loading Dashboard...</div>
+                </div>
+            </AgentLayout>
+        )
+    }
+
+    // Default stats if backend returns empty or null
+    const displayStats = {
+        newBusinesses: stats?.newBusinesses?.value ?? 0,
+        newBusinessesGoal: stats?.goal?.target ?? 10,
+        activeOffers: stats?.activeOffers?.value ?? 0,
+        activeOffersGoal: stats?.activeOffers?.target ?? 15,
+        totalScans: stats?.portfolioScans?.value ?? 0,
+        conversionRate: stats?.portfolioConversion?.value ?? '0%'
+    }
+
+    const progressPercent = (displayStats.newBusinesses / displayStats.newBusinessesGoal) * 100
+    const activePercent = (displayStats.activeOffers / (displayStats.activeOffersGoal || 15)) * 100
 
     return (
         <AgentLayout title="Portfolio Overview">
@@ -14,35 +60,35 @@ export default function AgentDashboard() {
             <div className="db-stats-grid">
                 <div className="db-stat-card">
                     <div className="db-stat-label">New Businesses (Month)</div>
-                    <div className="db-stat-value">{targets.newBusinesses} / {targets.newBusinessesGoal}</div>
+                    <div className="db-stat-value">{displayStats.newBusinesses} / {displayStats.newBusinessesGoal}</div>
                     <div style={{ marginTop: '0.75rem', height: '6px', background: '#f1f5f9', borderRadius: '100px', overflow: 'hidden' }}>
                         <div style={{ width: `${progressPercent}%`, height: '100%', background: '#2563eb' }} />
                     </div>
-                    <p style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>{targets.newBusinessesGoal - targets.newBusinesses} more to reach target</p>
+                    <p style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>{Math.max(0, displayStats.newBusinessesGoal - displayStats.newBusinesses)} more to reach target</p>
                 </div>
 
                 <div className="db-stat-card">
                     <div className="db-stat-label">Active Offers (Month)</div>
-                    <div className="db-stat-value">{targets.activeOffers} / {targets.activeOffersGoal}</div>
+                    <div className="db-stat-value">{displayStats.activeOffers} / {displayStats.activeOffersGoal}</div>
                     <div style={{ marginTop: '0.75rem', height: '6px', background: '#f1f5f9', borderRadius: '100px', overflow: 'hidden' }}>
                         <div style={{ width: `${activePercent}%`, height: '100%', background: '#2563eb' }} />
                     </div>
-                    <p style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>Goal: 15 Active Promotions</p>
+                    <p style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>Goal: {displayStats.activeOffersGoal || 15} Active Promotions</p>
                 </div>
 
                 <div className="db-stat-card">
                     <div className="db-stat-label">Portfolio Scans (Monthly)</div>
-                    <div className="db-stat-value">4.2k</div>
+                    <div className="db-stat-value">{displayStats.totalScans.toLocaleString()}</div>
                     <div className="db-stat-trend db-trend-up">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>
-                        +18% from last week
+                        Real-time data
                     </div>
                 </div>
 
                 <div className="db-stat-card">
                     <div className="db-stat-label">Portfolio Conversion</div>
-                    <div className="db-stat-value">12.4%</div>
-                    <p style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>Standard Avg: 10%</p>
+                    <div className="db-stat-value">{displayStats.conversionRate}</div>
+                    <p style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>Standard Avg: {stats?.standardAvg?.value || '4.2%'}</p>
                 </div>
             </div>
 
@@ -54,19 +100,17 @@ export default function AgentDashboard() {
                         <span style={{ color: '#ef4444' }}>⚠️</span> Urgent Actions
                     </h2>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {[
-                            { biz: 'FitLife Gym', issue: 'Offer Expiring in 2 days', type: 'expiring' },
-                            { biz: 'Bloom & Wild', issue: 'No Active Offer', type: 'inactive' },
-                            { biz: 'Marco\'s Pizzeria', issue: 'Boost Campaign Ending Soon', type: 'warning' }
-                        ].map((action, i) => (
+                        {urgentActions.length > 0 ? urgentActions.map((action, i) => (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', border: '1px solid #f1f5f9', borderRadius: '0.75rem', background: '#f8fafc' }}>
                                 <div style={{ flex: 1 }}>
-                                    <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{action.biz}</div>
+                                    <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{action.businessName}</div>
                                     <div style={{ fontSize: '0.8rem', color: '#e11d48', fontWeight: 600 }}>{action.issue}</div>
                                 </div>
                                 <button className="db-btn db-btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>Resolve</button>
                             </div>
-                        ))}
+                        )) : (
+                            <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No urgent actions required.</div>
+                        )}
                     </div>
                 </div>
 
@@ -75,16 +119,24 @@ export default function AgentDashboard() {
                     <div className="db-card">
                         <h2 className="db-card-title" style={{ marginBottom: '1.5rem' }}>Portfolio Leaderboard</h2>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <div style={{ width: '24px', height: '24px', background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 800, fontSize: '0.7rem' }}>1</div>
-                                <div style={{ flex: 1, fontWeight: 700, fontSize: '0.85rem' }}>Bella's Boutique</div>
-                                <div style={{ fontWeight: 800, color: '#2563eb', fontSize: '0.85rem' }}>15% CR</div>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <div style={{ width: '24px', height: '24px', background: '#f1f5f9', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 800, fontSize: '0.7rem' }}>2</div>
-                                <div style={{ flex: 1, fontWeight: 700, fontSize: '0.85rem' }}>The Daily Grind</div>
-                                <div style={{ fontWeight: 800, color: '#2563eb', fontSize: '0.85rem' }}>12.1% CR</div>
-                            </div>
+                            {leaderboard.map((item, i) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    <div style={{
+                                        width: '24px',
+                                        height: '24px',
+                                        background: i === 0 ? '#fef3c7' : '#f1f5f9',
+                                        color: i === 0 ? '#d97706' : '#64748b',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        borderRadius: '50%',
+                                        fontWeight: 800,
+                                        fontSize: '0.7rem'
+                                    }}>{i + 1}</div>
+                                    <div style={{ flex: 1, fontWeight: 700, fontSize: '0.85rem' }}>{item.businessName}</div>
+                                    <div style={{ fontWeight: 800, color: '#2563eb', fontSize: '0.85rem' }}>{item.conversionRate} CR</div>
+                                </div>
+                            ))}
                         </div>
                         <Link to="/agent/portfolio" className="db-btn db-btn-ghost" style={{ width: '100%', marginTop: '1.5rem', justifyContent: 'center', fontSize: '0.85rem' }}>View Ranking</Link>
                     </div>

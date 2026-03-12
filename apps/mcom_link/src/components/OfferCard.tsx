@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { trackEvent } from '../mock/tracker'
-import type { Offer } from '../mock/offers'
+import { api } from '../api/apiClient'
+import type { Offer } from '../types'
 
 interface OfferCardProps {
     offer: Offer
@@ -23,13 +23,13 @@ export default function OfferCard({ offer }: Readonly<OfferCardProps>) {
             clearInterval(timer)
             // Log total duration on unmount
             if (secondsViewed > 2) {
-                trackEvent('engagement_time', locationId || 'unknown', offer.id, { duration: secondsViewed.toString() })
+                api.get(`/r/${locationId || 'unknown'}/track/${offer.id}/engagement?duration=${secondsViewed}`).catch(() => { })
             }
         }
     }, [offer.id, locationId, secondsViewed])
 
     const handleIntent = (type: 'directions' | 'save_to_phone' | 'call_click' | 'whatsapp_click') => {
-        trackEvent(type, locationId || 'unknown', offer.id)
+        api.get(`/r/${locationId || 'unknown'}/track/${offer.id}/${type}`).catch(() => { })
 
         if (type === 'save_to_phone') {
             alert('🎟️ Lead Captured! Offer saved to your browser wallet.')
@@ -41,7 +41,7 @@ export default function OfferCard({ offer }: Readonly<OfferCardProps>) {
     const handleQuickClaim = (e: React.FormEvent) => {
         e.preventDefault()
         if (quickClaimEmail) {
-            trackEvent('quick_claim', locationId || 'unknown', offer.id, { email: quickClaimEmail })
+            api.get(`/r/${locationId || 'unknown'}/track/${offer.id}/quick_claim?email=${encodeURIComponent(quickClaimEmail)}`).catch(() => { })
             setIsClaimed(true)
         }
     }

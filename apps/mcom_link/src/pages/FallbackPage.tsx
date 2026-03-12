@@ -2,8 +2,8 @@
 // Branded fallback: shown when no active offers exist, location is invalid,
 // or any error occurs. NEVER shows 404, blank, or technical errors.
 
-import type { Offer } from '../mock/offers'
-import { fallbackOffer } from '../mock/offers'
+import type { Offer } from '../types'
+import { fallbackOffer } from '../constants/fallbackOffer'
 import StorefrontFooter from '../components/StorefrontFooter'
 
 interface FallbackPageProps {

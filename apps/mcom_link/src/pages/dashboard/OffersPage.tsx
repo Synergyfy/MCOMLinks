@@ -1,44 +1,62 @@
-import { useState } from 'react'
-import { mockOffers, type Offer } from '../../mock/offers'
+import { useState, useEffect } from 'react'
+import { api } from '../../api/apiClient'
+import { type Offer } from '../../mock/offers'
 import { mockBusiness } from '../../mock/business'
 import DashboardLayout from '../../components/DashboardLayout'
 import OfferCard from '../../components/OfferCard'
-import { type EngagementActivity } from '../../mock/offers'
 
-// Mock generator for engagement activities
-const generateMockActivities = (offerId: string): EngagementActivity[] => {
-    const types: EngagementActivity['type'][] = ['view', 'click', 'directions', 'claim', 'save']
-    const scores: EngagementActivity['interestScore'][] = ['low', 'medium', 'high', 'verified']
-    const profiles = ['#A7B2', '#99F1', '#B2D9', '#E4R5', '#X9Q0', 'sarah@email.com', 'mike@domain.co.uk']
+// No longer need mock generator here, backend provides engagement stats
 
-    return Array.from({ length: 8 }, (_, i) => {
-        const type = types[Math.floor(Math.random() * types.length)]
-        const isVerified = i === 0 || i === 4; // Force some verified leads
-        const profile = isVerified ? profiles[Math.floor(Math.random() * 2) + 5] : profiles[Math.floor(Math.random() * 5)]
-
-        return {
-            id: `act-${offerId}-${i}`,
-            visitorId: profile.includes('@') ? 'Verified Lead' : `Profile ${profile}`,
-            type,
-            timestamp: new Date(Date.now() - i * 3600000).toISOString(),
-            duration: Math.floor(Math.random() * 120) + 5,
-            device: Math.random() > 0.5 ? 'iPhone 15, Safari' : 'Android v14, Chrome',
-            interestScore: profile.includes('@') ? 'verified' : scores[Math.floor(Math.random() * 3)],
-            verifiedData: profile.includes('@') ? { email: profile } : undefined
-        }
-    })
-}
 
 export default function OffersPage() {
     const [filter, setFilter] = useState('all')
     const [showModal, setShowModal] = useState(false)
     const [uploadMode, setUploadMode] = useState<'url' | 'file'>('url')
     const [selectedOfferForStats, setSelectedOfferForStats] = useState<Offer | null>(null)
-    const [mockActivities, setMockActivities] = useState<EngagementActivity[]>([])
+    const [offers, setOffers] = useState<Offer[]>([])
+    const [loading, setLoading] = useState(true)
+    const [statsLoading, setStatsLoading] = useState(false)
+    const [engagementStats, setEngagementStats] = useState<any>(null)
+    const [mockActivities, setMockActivities] = useState<any[]>([])
 
-    const openStats = (offer: Offer) => {
-        setMockActivities(generateMockActivities(offer.id))
+    const fetchOffers = async () => {
+        setLoading(true)
+        try {
+            const data = await api.get<Offer[]>(`/dashboard/offers${filter !== 'all' ? `?status=${filter}` : ''}`)
+            // Ensure data is array before setting, if backend is down it could be an object with error
+            if (Array.isArray(data)) {
+                // Assuming backend returns all offers for business, frontend filtering if want 'all', but backend filtering is preferred
+                // Currently API filters all based on status, but we should make sure we only get business' offers ideally
+                // For now, assume backend returns correctly.
+                setOffers(data)
+            } else {
+                setOffers([])
+            }
+        } catch (err) {
+            console.error('Failed to fetch offers:', err)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        fetchOffers()
+    }, [filter])
+
+    const openStats = async (offer: Offer) => {
         setSelectedOfferForStats(offer)
+        setStatsLoading(true)
+        try {
+            const stats = await api.get<any>(`/dashboard/offers/${offer.id}/engagement`)
+            setEngagementStats(stats)
+            setMockActivities(stats.activities || [])
+        } catch (err) {
+            console.error('Failed to fetch stats:', err)
+            // Fallback for demo mostly if backend doesn't implement activities fully
+            setMockActivities([])
+        } finally {
+            setStatsLoading(false)
+        }
     }
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,22 +92,59 @@ export default function OffersPage() {
         redemptionInstructions: ''
     })
 
-    const myOffers = mockOffers.filter(o => o.businessName === mockBusiness.name)
-    const filteredOffers = filter === 'all' ? myOffers : myOffers.filter(o => o.status === filter)
+    // Use state offers instead of mock
+    const myOffers = offers
+    const filteredOffers = myOffers
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        if (newOffer.visibility === 'hyperlocal') {
-            const msg = `Hyperlocal Offer Detected!\n\nPostcode: ${newOffer.targetPostcode}\nRadius: 5 Miles\n\nSystem is checking for existing hubs within 5 miles... None found near ${newOffer.targetPostcode}.\n\n✅ AUTO-PROVISIONING: A new Radius Hub has been created for your business location!`
-            alert(msg)
-        } else {
-            alert("Offer submitted for approval! Our team will review it within 24 hours.")
-        }
+        try {
+            // Transform payload to match backend expectations
+            const payload: any = {
+                businessName: newOffer.businessName,
+                headline: newOffer.headline,
+                description: newOffer.description,
+                mediaType: newOffer.mediaType,
+                imageUrl: newOffer.mediaType === 'image' ? newOffer.imageUrl : newOffer.videoUrl,
+                startDate: newOffer.startDate ? new Date(newOffer.startDate).toISOString() : undefined,
+                endDate: newOffer.endDate ? new Date(newOffer.endDate).toISOString() : new Date().toISOString(),
+                ctaLabel: newOffer.ctaLabel,
+                ctaType: newOffer.ctaType,
+                redemptionCode: newOffer.ctaType === 'redeem' ? newOffer.redemptionCode : undefined,
+                visibility: newOffer.visibility,
+                targetPostcode: newOffer.targetPostcode,
+                isPremium: newOffer.isPremium,
+                status: 'submitted',
+            };
 
-        setShowModal(false)
-        setUploadMode('url')
-        setNewOffer({ ...newOffer, headline: '', description: '', visibility: 'national', targetPostcode: '' })
+            if (newOffer.ctaType === 'redirect') {
+                payload.leadDestination = newOffer.redirectUrl;
+            } else {
+                payload.leadDestination = newOffer.redemptionInstructions;
+            }
+
+            // For hyper-local, send a post and then show the alert if success
+            await api.post('/dashboard/offers', payload)
+
+            if (newOffer.visibility === 'hyperlocal') {
+                const msg = `Hyperlocal Offer Detected!\n\nPostcode: ${newOffer.targetPostcode}\nRadius: 5 Miles\n\nSystem is checking for existing hubs within 5 miles... None found near ${newOffer.targetPostcode}.\n\n✅ AUTO-PROVISIONING: A new Radius Hub has been created for your business location!`
+                alert(msg)
+            } else {
+                alert("Offer submitted for approval! Our team will review it within 24 hours.")
+            }
+
+            setShowModal(false)
+            setUploadMode('url')
+            setNewOffer({ headline: '', description: '', ctaType: 'claim', ctaLabel: 'Claim This Offer', redirectUrl: '', redemptionCode: '', mediaType: 'image', imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop', videoUrl: '', startDate: new Date().toISOString().split('T')[0], endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], businessName: mockBusiness.name, isPremium: false, season: 'all', visibility: 'national', targetPostcode: '', redemptionInstructions: '' })
+
+            // Refresh list
+            fetchOffers()
+
+        } catch (err) {
+            console.error("Failed to create offer:", err)
+            alert("Error creating offer")
+        }
     }
 
     return (
@@ -128,7 +183,13 @@ export default function OffersPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredOffers.map((offer) => (
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                                        Loading offers...
+                                    </td>
+                                </tr>
+                            ) : filteredOffers.map((offer) => (
                                 <tr key={offer.id}>
                                     <td>
                                         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -204,7 +265,9 @@ export default function OffersPage() {
             </div>
 
             <div className="mobile-only">
-                {filteredOffers.map((offer) => (
+                {loading ? (
+                    <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>Loading offers...</div>
+                ) : filteredOffers.map((offer) => (
                     <div key={offer.id} className="db-offer-card-mobile animate-fade-in">
                         <div className="db-offer-card-mobile-header">
                             <div style={{ position: 'relative' }}>
@@ -508,92 +571,100 @@ export default function OffersPage() {
 
                         <div className="db-modal-content" style={{ padding: '0 0 1.5rem 0' }}>
                             {/* Intent Summary */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', padding: '1.5rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                                <div style={{ borderRight: '1px solid #e2e8f0', paddingRight: '1rem' }}>
-                                    <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Interest Score</div>
-                                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10b981' }}>🔥 8.4/10</div>
-                                </div>
-                                <div style={{ borderRight: '1px solid #e2e8f0', paddingRight: '1rem', paddingLeft: '0.5rem' }}>
-                                    <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Avg. View Time</div>
-                                    <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>42s</div>
-                                </div>
-                                <div style={{ paddingLeft: '0.5rem' }}>
-                                    <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Repeat Scanners</div>
-                                    <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>24%</div>
-                                </div>
-                            </div>
+                            {statsLoading ? (
+                                <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Loading engagement data...</div>
+                            ) : (
+                                <>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', padding: '1.5rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                        <div style={{ borderRight: '1px solid #e2e8f0', paddingRight: '1rem' }}>
+                                            <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Interest Score</div>
+                                            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10b981' }}>{engagementStats?.interestScoreLabel || 'N/A'}</div>
+                                        </div>
+                                        <div style={{ borderRight: '1px solid #e2e8f0', paddingRight: '1rem', paddingLeft: '0.5rem' }}>
+                                            <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Avg. View Time</div>
+                                            <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{engagementStats?.avgViewTime || 'N/A'}</div>
+                                        </div>
+                                        <div style={{ paddingLeft: '0.5rem' }}>
+                                            <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Repeat Scanners</div>
+                                            <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{engagementStats?.repeatScannerRate || 'N/A'}</div>
+                                        </div>
+                                    </div>
 
-                            {/* Activity Feed */}
-                            <div style={{ padding: '1.5rem 1.5rem 0 1.5rem' }}>
-                                <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    Live Interaction Feed
-                                    <span style={{ padding: '2px 8px', background: '#ecfdf5', color: '#10b981', fontSize: '0.65rem', borderRadius: '10px' }}>Real-time</span>
-                                </h4>
+                                    {/* Activity Feed */}
+                                    <div style={{ padding: '1.5rem 1.5rem 0 1.5rem' }}>
+                                        <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            Live Interaction Feed
+                                            <span style={{ padding: '2px 8px', background: '#ecfdf5', color: '#10b981', fontSize: '0.65rem', borderRadius: '10px' }}>Real-time</span>
+                                        </h4>
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                    {mockActivities.map((act) => (
-                                        <div key={act.id} style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            padding: '1rem',
-                                            background: act.interestScore === 'verified' ? 'rgba(37, 99, 235, 0.04)' : '#fff',
-                                            borderRadius: '1rem',
-                                            border: act.interestScore === 'verified' ? '1px solid rgba(37, 99, 235, 0.1)' : '1px solid #f1f5f9',
-                                            transition: 'all 0.2s hover',
-                                            cursor: 'default'
-                                        }}>
-                                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                                <div style={{
-                                                    width: '40px',
-                                                    height: '40px',
-                                                    borderRadius: '50%',
-                                                    background: act.interestScore === 'verified' ? '#2563eb' : '#f1f5f9',
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                            {mockActivities.length === 0 ? (
+                                                <div style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem' }}>No recent activity.</div>
+                                            ) : mockActivities.map((act) => (
+                                                <div key={act.id} style={{
                                                     display: 'flex',
+                                                    justifyContent: 'space-between',
                                                     alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    fontSize: '1rem'
+                                                    padding: '1rem',
+                                                    background: act.interestScore === 'verified' ? 'rgba(37, 99, 235, 0.04)' : '#fff',
+                                                    borderRadius: '1rem',
+                                                    border: act.interestScore === 'verified' ? '1px solid rgba(37, 99, 235, 0.1)' : '1px solid #f1f5f9',
+                                                    transition: 'all 0.2s hover',
+                                                    cursor: 'default'
                                                 }}>
-                                                    {act.interestScore === 'verified' ? '👤' : '👻'}
-                                                </div>
-                                                <div>
-                                                    <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>{act.visitorId}</div>
-                                                    <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', gap: '0.5rem' }}>
-                                                        <span>{act.device}</span>
-                                                        <span>•</span>
-                                                        <span>{new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                                        <div style={{
+                                                            width: '40px',
+                                                            height: '40px',
+                                                            borderRadius: '50%',
+                                                            background: act.interestScore === 'verified' ? '#2563eb' : '#f1f5f9',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            fontSize: '1rem'
+                                                        }}>
+                                                            {act.interestScore === 'verified' ? '👤' : '👻'}
+                                                        </div>
+                                                        <div>
+                                                            <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>{act.visitorId}</div>
+                                                            <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', gap: '0.5rem' }}>
+                                                                <span>{act.device}</span>
+                                                                <span>•</span>
+                                                                <span>{new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <div style={{
+                                                            fontSize: '0.7rem',
+                                                            fontWeight: 800,
+                                                            color: act.interestScore === 'verified' ? '#2563eb' : act.interestScore === 'high' ? '#f59e0b' : '#94a3b8',
+                                                            textTransform: 'uppercase',
+                                                            marginBottom: '0.25rem'
+                                                        }}>
+                                                            {act.type === 'view' ? 'Page Viewed' :
+                                                                act.type === 'click' ? 'Clicked CTA' :
+                                                                    act.type === 'directions' ? 'Got Directions' :
+                                                                        act.type === 'claim' ? 'Claimed Lead' : 'Saved Offer'}
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '0.65rem',
+                                                            padding: '2px 8px',
+                                                            borderRadius: '4px',
+                                                            background: act.interestScore === 'verified' ? '#dbeafe' : act.interestScore === 'high' ? '#fef3c7' : '#f1f5f9',
+                                                            color: act.interestScore === 'verified' ? '#1e40af' : act.interestScore === 'high' ? '#92400e' : '#64748b',
+                                                            fontWeight: 700
+                                                        }}>
+                                                            {act.interestScore?.toUpperCase() || 'LOW'} {act.interestScore === 'verified' ? '👑' : act.interestScore === 'high' ? '🔥' : ''}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-
-                                            <div style={{ textAlign: 'right' }}>
-                                                <div style={{
-                                                    fontSize: '0.7rem',
-                                                    fontWeight: 800,
-                                                    color: act.interestScore === 'verified' ? '#2563eb' : act.interestScore === 'high' ? '#f59e0b' : '#94a3b8',
-                                                    textTransform: 'uppercase',
-                                                    marginBottom: '0.25rem'
-                                                }}>
-                                                    {act.type === 'view' ? 'Page Viewed' :
-                                                        act.type === 'click' ? 'Clicked CTA' :
-                                                            act.type === 'directions' ? 'Got Directions' :
-                                                                act.type === 'claim' ? 'Claimed Lead' : 'Saved Offer'}
-                                                </div>
-                                                <div style={{
-                                                    fontSize: '0.65rem',
-                                                    padding: '2px 8px',
-                                                    borderRadius: '4px',
-                                                    background: act.interestScore === 'verified' ? '#dbeafe' : act.interestScore === 'high' ? '#fef3c7' : '#f1f5f9',
-                                                    color: act.interestScore === 'verified' ? '#1e40af' : act.interestScore === 'high' ? '#92400e' : '#64748b',
-                                                    fontWeight: 700
-                                                }}>
-                                                    {act.interestScore.toUpperCase()} {act.interestScore === 'verified' ? '👑' : act.interestScore === 'high' ? '🔥' : ''}
-                                                </div>
-                                            </div>
+                                            ))}
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
 
                         <div className="db-modal-footer">

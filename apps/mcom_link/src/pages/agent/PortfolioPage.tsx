@@ -1,18 +1,65 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { api } from '../../api/apiClient'
 import AgentLayout from '../../components/AgentLayout'
 
-export default function PortfolioPage() {
-    // In a real app, we'd filter businesses by mockPortfolio.businessIds
-    // For now, we'll simulate a list of businesses assigned to the agent
-    const myBusinesses = [
-        { id: 'biz-001', name: 'Bella\'s Boutique', location: 'High Street', scans: 1240, claims: 186, conversion: 15.0, status: 'active', plan: 'Premium' },
-        { id: 'biz-002', name: 'The Daily Grind', location: 'Mall North', scans: 950, claims: 115, conversion: 12.1, status: 'active', plan: 'Basic' },
-        { id: 'biz-003', name: 'FitLife Gym', location: 'West End', scans: 600, claims: 42, conversion: 7.0, status: 'alert', plan: 'Basic' },
-        { id: 'biz-004', name: 'Bloom & Wild', location: 'East Plaza', scans: 450, claims: 20, conversion: 4.4, status: 'inactive', plan: 'Premium' },
-        { id: 'biz-005', name: 'Marco\'s Pizzeria', location: 'High Street', scans: 880, claims: 98, conversion: 11.1, status: 'active', plan: 'Basic' }
-    ]
+interface PortfolioBusiness {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    plan: string;
+    subscriptionStatus: string;
+    activeOffersCount: number;
+    totalScans: number;
+    totalClaims: number;
+    conversionRate: string;
+}
 
-    const sortedBusinesses = [...myBusinesses].sort((a, b) => b.conversion - a.conversion)
+export default function PortfolioPage() {
+    const [portfolio, setPortfolio] = useState<PortfolioBusiness[]>([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+
+    useEffect(() => {
+        const fetchPortfolio = async () => {
+            try {
+                const data = await api.get<{ portfolio: PortfolioBusiness[] }>('/agent/portfolio')
+                setPortfolio(data.portfolio)
+            } catch (e) {
+                console.error('Failed to fetch portfolio:', e)
+                setError('Failed to load portfolio data. Please try again later.')
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchPortfolio()
+    }, [])
+
+    if (loading) {
+        return (
+            <AgentLayout title="My Portfolio">
+                <div style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+                    <div className="db-stat-label">Loading your portfolio...</div>
+                </div>
+            </AgentLayout>
+        )
+    }
+
+    if (error) {
+        return (
+            <AgentLayout title="My Portfolio">
+                <div style={{ padding: '4rem 2rem', textAlign: 'center', background: '#fff1f2', borderRadius: '1rem', border: '1px solid #fecaca' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⚠️</div>
+                    <div style={{ fontWeight: 800, color: '#991b1b', marginBottom: '0.5rem' }}>{error}</div>
+                    <button onClick={() => window.location.reload()} className="db-btn db-btn-primary" style={{ margin: '0 auto' }}>Retry</button>
+                </div>
+            </AgentLayout>
+        )
+    }
+
+    const sortedBusinesses = [...portfolio].sort((a, b) => parseFloat(b.conversionRate) - parseFloat(a.conversionRate))
 
     return (
         <AgentLayout title="My Portfolio">
@@ -20,14 +67,14 @@ export default function PortfolioPage() {
             <div className="db-stats-grid" style={{ marginBottom: '2rem' }}>
                 <div className="db-stat-card">
                     <div className="db-stat-label">Total Portfolio Businesses</div>
-                    <div className="db-stat-value">{myBusinesses.length}</div>
+                    <div className="db-stat-value">{portfolio.length}</div>
                 </div>
                 <div className="db-stat-card">
-                    <div className="db-stat-label">Active / Inactive</div>
+                    <div className="db-stat-label">Subscription Status</div>
                     <div className="db-stat-value" style={{ fontSize: '1.25rem' }}>
-                        <span style={{ color: '#10b981' }}>{myBusinesses.filter(b => b.status === 'active').length} Active</span>
+                        <span style={{ color: '#10b981' }}>{portfolio.filter(b => b.subscriptionStatus === 'active').length} Active</span>
                         <span style={{ margin: '0 0.5rem', color: '#cbd5e1' }}>/</span>
-                        <span style={{ color: '#ef4444' }}>{myBusinesses.filter(b => b.status !== 'active').length} At Risk</span>
+                        <span style={{ color: '#ef4444' }}>{portfolio.filter(b => b.subscriptionStatus !== 'active').length} Suspended</span>
                     </div>
                 </div>
             </div>
@@ -44,7 +91,7 @@ export default function PortfolioPage() {
                                 <th>Scans</th>
                                 <th>Claims</th>
                                 <th>Conversion</th>
-                                <th>Status</th>
+                                <th>Offers</th>
                                 <th style={{ textAlign: 'right' }}>Actions</th>
                             </tr>
                         </thead>
@@ -54,7 +101,7 @@ export default function PortfolioPage() {
                                     <td>
                                         <Link to={`/agent/business/${biz.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                                             <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{biz.name}</div>
-                                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{biz.location}</div>
+                                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{biz.address || 'No address'}</div>
                                         </Link>
                                     </td>
                                     <td>
@@ -62,16 +109,16 @@ export default function PortfolioPage() {
                                             {biz.plan}
                                         </span>
                                     </td>
-                                    <td>{biz.scans}</td>
-                                    <td>{biz.claims}</td>
+                                    <td>{biz.totalScans}</td>
+                                    <td>{biz.totalClaims}</td>
                                     <td>
-                                        <div style={{ fontWeight: 800, color: biz.conversion > 10 ? '#2563eb' : '#64748b' }}>
-                                            {biz.conversion}%
+                                        <div style={{ fontWeight: 800, color: parseFloat(biz.conversionRate) > 10 ? '#2563eb' : '#64748b' }}>
+                                            {biz.conversionRate}
                                         </div>
                                     </td>
                                     <td>
-                                        <span className={`db-badge db-badge-${biz.status === 'active' ? 'approved' : biz.status === 'inactive' ? 'expired' : 'rejected'}`}>
-                                            {biz.status === 'active' ? 'Live' : biz.status === 'inactive' ? 'No Offer' : 'Needs Action'}
+                                        <span className={`db-badge db-badge-${biz.activeOffersCount > 0 ? 'approved' : 'expired'}`}>
+                                            {biz.activeOffersCount} Active
                                         </span>
                                     </td>
                                     <td style={{ textAlign: 'right' }}>
@@ -97,10 +144,10 @@ export default function PortfolioPage() {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                                 <Link to={`/agent/business/${biz.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                                     <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0a0a0a' }}>{biz.name}</div>
-                                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{biz.location}</div>
+                                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{biz.address || 'No address'}</div>
                                 </Link>
-                                <span className={`db-badge db-badge-${biz.status === 'active' ? 'approved' : biz.status === 'inactive' ? 'expired' : 'rejected'}`}>
-                                    {biz.status === 'active' ? 'Live' : biz.status === 'inactive' ? 'No Offer' : 'Needs Action'}
+                                <span className={`db-badge db-badge-${biz.activeOffersCount > 0 ? 'approved' : 'expired'}`}>
+                                    {biz.activeOffersCount} Active
                                 </span>
                             </div>
 
@@ -108,20 +155,23 @@ export default function PortfolioPage() {
                                 <span className={`db-badge ${biz.plan === 'Premium' ? 'db-badge-approved' : 'db-badge-draft'}`} style={{ textTransform: 'uppercase', fontSize: '0.65rem' }}>
                                     {biz.plan} Plan
                                 </span>
+                                <span style={{ fontSize: '0.75rem', color: biz.subscriptionStatus === 'active' ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                                    {biz.subscriptionStatus.toUpperCase()}
+                                </span>
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.25rem', background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem' }}>
                                 <div>
                                     <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Scans</div>
-                                    <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>{biz.scans}</div>
+                                    <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>{biz.totalScans}</div>
                                 </div>
                                 <div>
                                     <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Claims</div>
-                                    <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>{biz.claims}</div>
+                                    <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>{biz.totalClaims}</div>
                                 </div>
                                 <div>
                                     <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>CR</div>
-                                    <div style={{ fontWeight: 800, fontSize: '1.1rem', color: biz.conversion > 10 ? '#2563eb' : '#0a0a0a' }}>{biz.conversion}%</div>
+                                    <div style={{ fontWeight: 800, fontSize: '1.1rem', color: parseFloat(biz.conversionRate) > 10 ? '#2563eb' : '#0a0a0a' }}>{biz.conversionRate}</div>
                                 </div>
                             </div>
 
