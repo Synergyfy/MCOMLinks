@@ -7,28 +7,52 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class OffersService {
     constructor(private readonly prisma: PrismaService) { }
 
-    async create(createOfferDto: CreateOfferDto) {
+    private async getBusinessName(userId: string): Promise<string> {
+        const profile = await this.prisma.businessProfile.findUnique({
+            where: { userId }
+        });
+        
+        if (!profile) {
+            const user = await this.prisma.user.findUnique({ where: { id: userId } });
+            return user?.name || "My Business";
+        }
+        return profile.name;
+    }
+
+    async create(userId: string, createOfferDto: CreateOfferDto) {
         const { season, ...rest } = createOfferDto;
+        const businessName = await this.getBusinessName(userId);
+        
         return this.prisma.offer.create({
             data: {
                 ...rest,
+                businessName, // Automatically set businessName from profile
                 seasonId: season,
             },
         });
     }
 
-    async findAll(status?: string) {
+    async findAll(userId: string, status?: string) {
+        const businessName = await this.getBusinessName(userId);
+        
         const offers = await this.prisma.offer.findMany({
-            where: status && status !== 'all' ? { status: status } : undefined,
+            where: {
+                businessName,
+                ...(status && status !== 'all' ? { status: status } : {}),
+            },
             orderBy: { createdAt: 'desc' },
         });
 
         return offers.map((offer: any) => this.mapOffer(offer));
     }
 
-    async getEngagement(id: string) {
+    async getEngagement(userId: string, id: string) {
+        const businessName = await this.getBusinessName(userId);
         const offer = await this.prisma.offer.findUnique({ where: { id } });
-        if (!offer) throw new NotFoundException('Offer not found');
+        
+        if (!offer || offer.businessName !== businessName) {
+            throw new NotFoundException('Offer not found');
+        }
 
         const activities = await this.prisma.activity.findMany({
             where: { offerId: id },
@@ -36,8 +60,6 @@ export class OffersService {
             take: 20,
         });
 
-        // Mocking some calculations for "Engagement Gold Dust"
-        // In a real app, these would be derived from actual analytics processing
         return {
             interestScoreLabel: '🔥 8.4/10',
             avgViewTime: '42s',
@@ -78,19 +100,27 @@ export class OffersService {
         };
     }
 
-    async findOne(id: string) {
+    async findOne(userId: string, id: string) {
+        const businessName = await this.getBusinessName(userId);
         const offer = await this.prisma.offer.findUnique({
             where: { id },
         });
 
-        if (!offer) {
+        if (!offer || offer.businessName !== businessName) {
             throw new NotFoundException(`Offer with ID ${id} not found`);
         }
 
         return this.mapOffer(offer);
     }
 
-    async update(id: string, updateOfferDto: UpdateOfferDto) {
+    async update(userId: string, id: string, updateOfferDto: UpdateOfferDto) {
+        const businessName = await this.getBusinessName(userId);
+        const offer = await this.prisma.offer.findUnique({ where: { id } });
+
+        if (!offer || offer.businessName !== businessName) {
+            throw new NotFoundException(`Offer with ID ${id} not found`);
+        }
+
         const { season, ...rest } = updateOfferDto;
         return this.prisma.offer.update({
             where: { id },
@@ -98,16 +128,19 @@ export class OffersService {
                 ...rest,
                 seasonId: season,
             },
-        }).catch(() => {
-            throw new NotFoundException(`Offer with ID ${id} not found`);
         });
     }
 
-    async remove(id: string) {
+    async remove(userId: string, id: string) {
+        const businessName = await this.getBusinessName(userId);
+        const offer = await this.prisma.offer.findUnique({ where: { id } });
+
+        if (!offer || offer.businessName !== businessName) {
+            throw new NotFoundException(`Offer with ID ${id} not found`);
+        }
+
         return this.prisma.offer.delete({
             where: { id },
-        }).catch(() => {
-            throw new NotFoundException(`Offer with ID ${id} not found`);
         });
     }
 }

@@ -1,5 +1,4 @@
 import DashboardLayout from '../../components/DashboardLayout'
-import { mockBusiness } from '../../mock/business'
 import { useState, useEffect, useRef } from 'react'
 import { api } from '../../api/apiClient'
 
@@ -16,6 +15,7 @@ export default function SupportPage() {
     const [newMessage, setNewMessage] = useState('')
     const [sending, setSending] = useState(false)
     const chatEndRef = useRef<HTMLDivElement>(null)
+    const [agentEmail, setAgentEmail] = useState('support@mcom.links')
 
     const fetchMessages = async () => {
         try {
@@ -30,8 +30,20 @@ export default function SupportPage() {
         }
     }
 
+    const fetchSettings = async () => {
+        try {
+            const data = await api.get<any>('/dashboard/settings')
+            if (data?.agentEmail) {
+                setAgentEmail(data.agentEmail)
+            }
+        } catch (err) {
+            // Ignore if settings fetch fails
+        }
+    }
+
     useEffect(() => {
         fetchMessages()
+        fetchSettings()
     }, [])
 
     useEffect(() => {
@@ -70,9 +82,9 @@ export default function SupportPage() {
                 {/* 1. Chat Interface — PRD STEP 10 */}
                 <div className="db-card" style={{ padding: 0, display: 'flex', flexDirection: 'column', height: 'min(600px, 80vh)' }}>
                     <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#2563eb', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>JT</div>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#2563eb', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>M L</div>
                         <div>
-                            <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>James Thompson</div>
+                            <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>MCOM.LINKS Support</div>
                             <div style={{ fontSize: '0.7rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span> Online
                             </div>
@@ -131,14 +143,14 @@ export default function SupportPage() {
                 {/* 2. Agent Info & Help — PRD STEP 10 */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                     <div className="db-card">
-                        <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1rem', fontWeight: 800 }}>Account Manager</h3>
+                        <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1rem', fontWeight: 800 }}>Support Contacts</h3>
                         <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: '1.6', margin: '0 0 1.5rem 0' }}>
-                            James Thompson helps you optimize your offers and manage your subscription.
+                            We are here to help you optimize your offers and manage your subscription.
                         </p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
                                 <span style={{ color: '#94a3b8' }}>Email:</span>
-                                <span style={{ fontWeight: 700, fontSize: '0.8rem' }}>{mockBusiness.agentEmail}</span>
+                                <span style={{ fontWeight: 700, fontSize: '0.8rem' }}>{agentEmail}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
                                 <span style={{ color: '#94a3b8' }}>Response Time:</span>

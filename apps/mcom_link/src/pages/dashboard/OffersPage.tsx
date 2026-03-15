@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { api } from '../../api/apiClient'
 import { type Offer } from '../../mock/offers'
-import { mockBusiness } from '../../mock/business'
 import DashboardLayout from '../../components/DashboardLayout'
 import OfferCard from '../../components/OfferCard'
 
@@ -84,7 +83,7 @@ export default function OffersPage() {
         videoUrl: '',
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        businessName: mockBusiness.name,
+        businessName: '',
         isPremium: false,
         season: 'all',
         visibility: 'national',
@@ -102,7 +101,6 @@ export default function OffersPage() {
         try {
             // Transform payload to match backend expectations
             const payload: any = {
-                businessName: newOffer.businessName,
                 headline: newOffer.headline,
                 description: newOffer.description,
                 mediaType: newOffer.mediaType,
@@ -136,7 +134,7 @@ export default function OffersPage() {
 
             setShowModal(false)
             setUploadMode('url')
-            setNewOffer({ headline: '', description: '', ctaType: 'claim', ctaLabel: 'Claim This Offer', redirectUrl: '', redemptionCode: '', mediaType: 'image', imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop', videoUrl: '', startDate: new Date().toISOString().split('T')[0], endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], businessName: mockBusiness.name, isPremium: false, season: 'all', visibility: 'national', targetPostcode: '', redemptionInstructions: '' })
+            setNewOffer({ headline: '', description: '', ctaType: 'claim', ctaLabel: 'Claim This Offer', redirectUrl: '', redemptionCode: '', mediaType: 'image', imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop', videoUrl: '', startDate: new Date().toISOString().split('T')[0], endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], businessName: '', isPremium: false, season: 'all', visibility: 'national', targetPostcode: '', redemptionInstructions: '' })
 
             // Refresh list
             fetchOffers()

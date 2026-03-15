@@ -36,13 +36,29 @@ export default function SettingsPage() {
                     })
                 }
             } catch (err: any) {
-                console.error('Failed to fetch settings:', err)
-                setMessage({ type: 'error', text: 'Failed to load settings. Please try again later.' })
+                // If 404, it just means the business hasn't set up their profile yet
+                // We don't want to show an error message for this.
+                if (err.message?.includes('404') || err.message?.includes('not found')) {
+                    console.log('No business profile found. Using defaults for new setup.')
+                    
+                    // Try to pre-fill from stored user info
+                    const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+                    if (storedUser.email) {
+                        setFormData(prev => ({ 
+                            ...prev, 
+                            contactEmail: storedUser.email,
+                            name: storedUser.name || ''
+                        }))
+                    }
+                } else {
+                    console.error('Failed to fetch settings:', err)
+                    setMessage({ type: 'error', text: 'Failed to load settings. Please try again later.' })
+                }
             } finally {
                 setLoading(false)
             }
         }
-
+ 
         fetchSettings()
     }, [])
 

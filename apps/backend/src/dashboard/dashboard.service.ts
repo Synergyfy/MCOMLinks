@@ -6,16 +6,24 @@ import { PrismaService } from '../prisma/prisma.service';
 export class DashboardService {
     constructor(private readonly prisma: PrismaService) { }
 
-    async getStats(): Promise<DashboardStatsDto> {
+    async getStats(userId: string): Promise<DashboardStatsDto> {
         const quickActions: QuickActionDto[] = [
             { label: 'Create New Offer', link: '/dashboard/offers', type: 'primary', icon: 'plus' },
             { label: 'View Performance', link: '/dashboard/analytics', type: 'ghost' },
             { label: 'Contact James (Agent)', link: '/dashboard/support', type: 'ghost' },
         ];
 
-        const totalScans = await this.prisma.activity.count({ where: { type: 'SCAN' } });
-        const totalClaims = await this.prisma.activity.count({ where: { type: 'CLAIM' } });
-        const totalRedemptions = await this.prisma.activity.count({ where: { type: 'REDEMPTION' } });
+        const businessName = await this.getBusinessName(userId);
+
+        const totalScans = await this.prisma.activity.count({ 
+            where: { type: 'SCAN', offer: { businessName } } 
+        });
+        const totalClaims = await this.prisma.activity.count({ 
+            where: { type: 'CLAIM', offer: { businessName } } 
+        });
+        const totalRedemptions = await this.prisma.activity.count({ 
+            where: { type: 'REDEMPTION', offer: { businessName } } 
+        });
 
         // Calculate engagement growth (comparing last 30 days to the 30 days before)
         const now = new Date();
@@ -25,14 +33,16 @@ export class DashboardService {
         const currentPeriodEngagement = await this.prisma.activity.count({
             where: {
                 createdAt: { gte: thirtyDaysAgo },
-                type: { in: ['SCAN', 'CLAIM'] }
+                type: { in: ['SCAN', 'CLAIM'] },
+                offer: { businessName }
             }
         });
 
         const previousPeriodEngagement = await this.prisma.activity.count({
             where: {
                 createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo },
-                type: { in: ['SCAN', 'CLAIM'] }
+                type: { in: ['SCAN', 'CLAIM'] },
+                offer: { businessName }
             }
         });
 
@@ -46,6 +56,7 @@ export class DashboardService {
 
         const activeOffers = await this.prisma.offer.count({
             where: {
+                businessName,
                 status: 'approved',
                 startDate: { lte: now },
                 endDate: { gte: now },
@@ -56,7 +67,7 @@ export class DashboardService {
         const conversionRate = totalScans > 0 ? parseFloat(((totalClaims / totalScans) * 100).toFixed(1)) : 0;
 
         const offer = await this.prisma.offer.findFirst({
-            where: { status: 'approved' },
+            where: { status: 'approved', businessName },
             orderBy: { createdAt: 'desc' },
         });
 
@@ -90,8 +101,11 @@ export class DashboardService {
         };
     }
 
-    async getRecentActivity(): Promise<RecentActivityDto[]> {
+    async getRecentActivity(userId: string): Promise<RecentActivityDto[]> {
+        const businessName = await this.getBusinessName(userId);
+
         const activities = await this.prisma.activity.findMany({
+            where: { offer: { businessName } },
             take: 10,
             orderBy: { createdAt: 'desc' },
         });
@@ -101,5 +115,17 @@ export class DashboardService {
             type: act.type,
             description: act.description,
         }));
+    }
+
+    private async getBusinessName(userId: string): Promise<string> {
+        const profile = await this.prisma.businessProfile.findUnique({
+            where: { userId }
+        });
+        
+        if (!profile) {
+            const user = await this.prisma.user.findUnique({ where: { id: userId } });
+            return user?.name || "My Business";
+        }
+        return profile.name;
     }
 }

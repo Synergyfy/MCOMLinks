@@ -51,13 +51,29 @@ export class AuthService {
             throw new UnauthorizedException('User already exists with this email');
         }
 
-        const user = await this.prisma.user.create({
-            data: {
-                name,
-                email,
-                password,
-                role: role || 'BUSINESS',
-            },
+        const user = await this.prisma.$transaction(async (tx) => {
+            const newUser = await tx.user.create({
+                data: {
+                    name,
+                    email,
+                    password,
+                    role: role || 'BUSINESS',
+                },
+            });
+
+            // If user is a business owner, create a default profile
+            if (newUser.role === 'BUSINESS') {
+                await tx.businessProfile.create({
+                    data: {
+                        userId: newUser.id,
+                        name: newUser.name || 'My Business',
+                        description: 'Business description',
+                        contactEmail: newUser.email,
+                    },
+                });
+            }
+
+            return newUser;
         });
 
         return this.login({ email, password });

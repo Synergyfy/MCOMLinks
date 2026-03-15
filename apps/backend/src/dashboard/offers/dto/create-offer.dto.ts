@@ -10,10 +10,10 @@ export enum OfferStatus {
 }
 
 export class CreateOfferDto {
-    @ApiProperty({ example: "Bella's Boutique", description: 'Name of the business' })
+    @ApiPropertyOptional({ example: "Bella's Boutique", description: 'Name of the business' })
     @IsString()
-    @IsNotEmpty()
-    businessName: string;
+    @IsOptional()
+    businessName?: string;
 
     @ApiProperty({ example: '10% Off All Accessories', description: 'Headline of the offer' })
     @IsString()

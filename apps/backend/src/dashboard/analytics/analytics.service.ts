@@ -6,9 +6,15 @@ import { AnalyticsDataDto, AnalyticsTimelineDto } from './dto/analytics.dto';
 export class AnalyticsService {
     constructor(private readonly prisma: PrismaService) { }
 
-    async getAnalytics(): Promise<AnalyticsDataDto> {
-        const totalScans = await this.prisma.activity.count({ where: { type: 'SCAN' } });
-        const totalClaims = await this.prisma.activity.count({ where: { type: 'CLAIM' } });
+    async getAnalytics(userId: string): Promise<AnalyticsDataDto> {
+        const businessName = await this.getBusinessName(userId);
+
+        const totalScans = await this.prisma.activity.count({ 
+            where: { type: 'SCAN', offer: { businessName } } 
+        });
+        const totalClaims = await this.prisma.activity.count({ 
+            where: { type: 'CLAIM', offer: { businessName } } 
+        });
 
         const conversionRate = totalScans > 0 ? (totalClaims / totalScans) * 100 : 0;
 
@@ -21,6 +27,7 @@ export class AnalyticsService {
             where: {
                 createdAt: { gte: sevenDaysAgo },
                 type: { in: ['SCAN', 'CLAIM'] },
+                offer: { businessName }
             },
         });
 
@@ -48,6 +55,7 @@ export class AnalyticsService {
             .sort((a, b) => a.date.localeCompare(b.date));
 
         const topOffersRaw = await this.prisma.offer.findMany({
+            where: { businessName },
             take: 5,
             orderBy: { scans: 'desc' },
         });
@@ -60,6 +68,7 @@ export class AnalyticsService {
         }));
 
         const recentEngagementRaw = await this.prisma.activity.findMany({
+            where: { offer: { businessName } },
             take: 10,
             orderBy: { createdAt: 'desc' },
         });
@@ -81,5 +90,17 @@ export class AnalyticsService {
             topOffers,
             recentEngagement,
         };
+    }
+
+    private async getBusinessName(userId: string): Promise<string> {
+        const profile = await this.prisma.businessProfile.findUnique({
+            where: { userId }
+        });
+        
+        if (!profile) {
+            const user = await this.prisma.user.findUnique({ where: { id: userId } });
+            return user?.name || "My Business";
+        }
+        return profile.name;
     }
 }

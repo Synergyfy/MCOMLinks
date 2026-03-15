@@ -1,5 +1,5 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, UseGuards, Request } from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AnalyticsService } from './analytics.service';
 import { AnalyticsDataDto } from './dto/analytics.dto';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
@@ -7,6 +7,7 @@ import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 @ApiTags('Business Dashboard Analytics')
 @Controller('dashboard/analytics')
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class AnalyticsController {
     constructor(private readonly analyticsService: AnalyticsService) { }
 
@@ -17,7 +18,7 @@ export class AnalyticsController {
         description: 'Returns detailed analytics data',
         type: AnalyticsDataDto,
     })
-    async getAnalytics(): Promise<AnalyticsDataDto> {
-        return this.analyticsService.getAnalytics();
+    async getAnalytics(@Request() req: any): Promise<AnalyticsDataDto> {
+        return this.analyticsService.getAnalytics(req.user.id);
     }
 }

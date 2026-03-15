@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import '../styles/dashboard.css'
 
 interface AdminLayoutProps {
@@ -9,7 +9,14 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children, title }: AdminLayoutProps) {
     const location = useLocation()
+    const navigate = useNavigate()
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+    const handleLogout = () => {
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('user')
+        navigate('/login')
+    }
 
     const navItems = [
         { label: 'Global Dashboard', path: '/admin', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><line x1="3" x2="21" y1="9" y2="9" /><line x1="9" x2="9" y1="21" y2="9" /></svg> },
@@ -76,7 +83,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                             <div style={{ fontSize: '0.65rem', color: '#bfdbfe' }}>System Brain</div>
                         </div>
                     </div>
-                    <button className="db-btn db-btn-ghost" style={{ width: '100%', marginTop: '1rem', justifyContent: 'center', color: '#ffffff', border: '1px solid rgba(255,255,255,0.3)', fontSize: '0.8rem', background: 'rgba(255,255,255,0.1)' }}>Log Out</button>
+                    <button onClick={handleLogout} className="db-btn db-btn-ghost" style={{ width: '100%', marginTop: '1rem', justifyContent: 'center', color: '#ffffff', border: '1px solid rgba(255,255,255,0.3)', fontSize: '0.8rem', background: 'rgba(255,255,255,0.1)' }}>Log Out</button>
                 </div>
             </aside>
 

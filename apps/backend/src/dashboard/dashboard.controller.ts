@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, UseGuards, Request } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { DashboardService } from './dashboard.service';
 import { DashboardStatsDto, RecentActivityDto } from './dto/dashboard-stats.dto';
@@ -17,8 +17,8 @@ export class DashboardController {
         description: 'Returns dashboard stats',
         type: DashboardStatsDto
     })
-    async getStats(): Promise<DashboardStatsDto> {
-        return this.dashboardService.getStats();
+    async getStats(@Request() req: any): Promise<DashboardStatsDto> {
+        return this.dashboardService.getStats(req.user.id);
     }
 
     @Get('recent-activity')
@@ -28,7 +28,7 @@ export class DashboardController {
         description: 'Returns list of recent activities',
         type: [RecentActivityDto]
     })
-    async getRecentActivity(): Promise<RecentActivityDto[]> {
-        return this.dashboardService.getRecentActivity();
+    async getRecentActivity(@Request() req: any): Promise<RecentActivityDto[]> {
+        return this.dashboardService.getRecentActivity(req.user.id);
     }
 }

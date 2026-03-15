@@ -1,6 +1,6 @@
-import { useState, type ReactNode } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { mockBusiness } from '../mock/business'
+import { useState, useEffect, type ReactNode } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { api } from '../api/apiClient'
 import '../styles/dashboard.css'
 
 interface DashboardLayoutProps {
@@ -20,6 +20,8 @@ const NavIcon = ({ type, size = 20 }: { type: string; size?: number }) => {
             return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" /><path d="M8 12h.01" /><path d="M12 12h.01" /><path d="M16 12h.01" /></svg>
         case 'settings':
             return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
+        case 'logout':
+            return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
         default:
             return null
     }
@@ -27,7 +29,36 @@ const NavIcon = ({ type, size = 20 }: { type: string; size?: number }) => {
 
 export default function DashboardLayout({ children, title }: DashboardLayoutProps) {
     const location = useLocation()
+    const navigate = useNavigate()
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+    const [profile, setProfile] = useState<{name?: string, logoUrl?: string, ownerName?: string}>({})
+
+    const storedUserStr = localStorage.getItem('user');
+    const storedUser = storedUserStr ? JSON.parse(storedUserStr) : null;
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const data = await api.get<any>('/dashboard/settings')
+                if (data) {
+                    setProfile({
+                        name: data.name,
+                        logoUrl: data.logoUrl,
+                        ownerName: data.ownerName
+                    })
+                }
+            } catch (err) {
+                // Ignore API error since it might just mean no profile is setup yet
+            }
+        }
+        fetchProfile()
+    }, [])
+
+    const handleLogout = () => {
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('user')
+        navigate('/login')
+    }
 
     const navItems = [
         { label: 'Overview', path: '/dashboard', icon: 'home' },
@@ -45,6 +76,10 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
         'Agent Support': 'Support',
         'Settings': 'Settings',
     }
+
+    const brandName = profile.name || 'My Business'
+    const contactName = profile.ownerName || storedUser?.name || 'Business User'
+    const logoSource = profile.logoUrl || 'https://images.unsplash.com/photo-1541101767792-f9b2b1c4f127?w=100&h=100&fit=crop'
 
     return (
         <div className="db-container">
@@ -87,11 +122,22 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
                 </nav>
 
                 <div className="db-sidebar-footer">
+                    <button
+                        onClick={handleLogout}
+                        className="db-nav-link"
+                        style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', marginTop: 'auto', marginBottom: '1rem', color: '#ef4444' }}
+                    >
+                        <span className="db-nav-icon" style={{ color: '#ef4444' }}>
+                            <NavIcon type="logout" />
+                        </span>
+                        <span>Log Out</span>
+                    </button>
+
                     <Link to="/dashboard/settings" className="db-user-card" style={{ textDecoration: 'none', color: 'inherit' }} onClick={() => setIsSidebarOpen(false)}>
-                        <img src={mockBusiness.logoUrl} alt={mockBusiness.name} className="db-user-avatar" />
+                        <img src={logoSource} alt={brandName} className="db-user-avatar" />
                         <div className="db-user-info">
-                            <div className="db-user-name">{mockBusiness.contactPerson}</div>
-                            <div className="db-user-role">{mockBusiness.name}</div>
+                            <div className="db-user-name">{contactName}</div>
+                            <div className="db-user-role">{brandName}</div>
                         </div>
                     </Link>
                 </div>
