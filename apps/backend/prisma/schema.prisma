@@ -13,7 +13,6 @@ model User {
   email              String           @unique
   password           String
   name               String?
-  postcode           String?
   role               String           @default("BUSINESS")
   businessProfile    BusinessProfile?
   managingBusinesses BusinessProfile[] @relation("AgentBusinesses")
