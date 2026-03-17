@@ -21,8 +21,12 @@
     "strictBindCallApply": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@mcom/common": ["../../packages/common/src/index.ts"]
+      "@mcom/common": [
+        "../../packages/common/src/index.ts"
+      ]
     }
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*"
+  ]
 }
