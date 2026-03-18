@@ -8,8 +8,6 @@ import {
 } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { AllExceptionsFilter } from './filters/all-exceptions.filter';
-import { LoggingInterceptor } from './interceptors/logging.interceptor';
 
 // 1. Shared Configuration Function
 export function configureApp(app: INestApplication) {
@@ -28,8 +26,6 @@ export function configureApp(app: INestApplication) {
   });
 
 
-  // Filters
-  app.useGlobalFilters(new AllExceptionsFilter());
 
   // Validation
   app.useGlobalPipes(
@@ -43,10 +39,9 @@ export function configureApp(app: INestApplication) {
     }),
   );
 
-  // Serialization & Global Logging
+  // Serialization
   app.useGlobalInterceptors(
     new ClassSerializerInterceptor(app.get(Reflector)),
-    new LoggingInterceptor(),
   );
 
   // Swagger
