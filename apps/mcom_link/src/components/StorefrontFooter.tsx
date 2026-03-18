@@ -10,7 +10,7 @@ export default function StorefrontFooter() {
                 <a href="/privacy" className="sf-footer-link">Privacy Policy</a>
             </div>
             <div className="sf-footer-copyright">
-                © 2026 MCOMLINKS. All rights reserved.
+                © 2026 MCOMQLINKS. All rights reserved.
             </div>
         </footer>
     )

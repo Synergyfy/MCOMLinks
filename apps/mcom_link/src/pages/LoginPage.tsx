@@ -48,13 +48,13 @@ const LoginPage: React.FC = () => {
                 <div className="auth-sidebar">
                     <div>
                         <div className="logo" style={{ color: 'white', marginBottom: '2rem' }}>
-                            MCOM<span style={{ opacity: 0.8 }}>.LINKS</span>
+                            MCOMQ<span style={{ opacity: 0.8 }}>.LINKS</span>
                         </div>
                         <h2>Revitalizing <br />Local Commerce.</h2>
                         <p>The "set-and-forget" marketing machine for high-street sequential offer rotation.</p>
                     </div>
                     <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>
-                        &copy; 2026 MCOMLINKS International.
+                        &copy; 2026 MCOMQLINKS International.
                     </div>
                 </div>
 
@@ -72,8 +72,8 @@ const LoginPage: React.FC = () => {
                             <input
                                 type="email"
                                 className="auth-input"
-                                placeholder="demo@mcomlinks.com"
-                                defaultValue="admin@mcomlinks.com"
+                                placeholder="demo@mcomqlinks.com"
+                                defaultValue="admin@mcomqlinks.com"
                                 required
                             />
                         </div>

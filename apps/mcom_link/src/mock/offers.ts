@@ -207,7 +207,7 @@ export const mockOffers: Offer[] = [
 // The branded fallback offer (STEP 11) — always available, never blank
 export const fallbackOffer: Offer = {
     id: 'fallback-001',
-    businessName: 'MCOMLINKS',
+    businessName: 'MCOMQLINKS',
     headline: '🎉 Discover Local Deals Near You',
     description: 'Your local high street is full of amazing offers. Scan again soon to see what\'s new and save money at your favourite shops!',
     mediaType: 'image',

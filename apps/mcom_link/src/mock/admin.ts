@@ -26,13 +26,13 @@ export const mockAdmins: AdminProfile[] = [
     {
         id: 'admin-001',
         name: 'Super Admin',
-        email: 'super@mcomlinks.com',
+        email: 'super@mcomqlinks.com',
         role: 'Super Admin'
     },
     {
         id: 'admin-002',
         name: 'Ops Manager',
-        email: 'ops@mcomlinks.com',
+        email: 'ops@mcomqlinks.com',
         role: 'Operations Admin'
     }
 ];
@@ -69,9 +69,9 @@ export const mockSeasons: Season[] = [
 ];
 
 export const mockTemplate: StorefrontTemplate = {
-    brandColor: '#2563eb', // Standard MCOMLINKS Blue
+    brandColor: '#2563eb', // Standard MCOMQLINKS Blue
     headerText: 'Exclusive High Street Offers',
-    footerText: 'Powered by MCOMLINKS - Revitalizing Commerce',
+    footerText: 'Powered by MCOMQLINKS - Revitalizing Commerce',
     logoUrl: '/logo.png',
     showSocials: true
 };

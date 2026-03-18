@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import './App.css'
 import rotatorImg from './assets/rotator.png'
+import { mockAdData } from './mock/ads' // Import centralized ad data
 
 // Refined SVG Icons
 const RefreshIcon = () => (
@@ -32,16 +33,17 @@ const CloseIcon = () => (
 function App() {
   const [activeTab, setActiveTab] = useState('Home')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [currentAdPage, setCurrentAdPage] = useState(0)
 
   const features = [
     {
-      title: "Sequential Rotation",
-      desc: "Never show the same offer twice. Our engine ensures every scan delivers the next fresh deal in the sequence.",
+      title: "Hyperlocal Ad Campaigns",
+      desc: "Registered businesses can run seasonal ad campaigns in hyperlocal or nearby areas, shown sequentially to promote products and services across McomQlinks storefronts.",
       icon: <RefreshIcon />
     },
     {
-      title: "Seasonal Automation",
-      desc: "Set your date and relax. The system automatically switches between Winter, Spring, and Summer campaigns.",
+      title: "Mcom Seasonal Automation",
+      desc: "Set your campaign dates and relax. The system automatically switches between Winter, Spring, and Summer promotions.",
       icon: <CalendarIcon />
     },
     {
@@ -50,26 +52,36 @@ function App() {
       icon: <ShieldIcon />
     },
     {
-      title: "Gold Dust Analytics",
+      title: "Real-Time Engagement Analytics",
       desc: "Track every scan, click, and claim. Turn engagement data into actionable growth for local commerce.",
       icon: <BarChartIcon />
     }
   ]
 
-  const stats = [
-    { value: "2.4M+", label: "Daily Engagements" },
-    { value: "48K", label: "Active Nodes" },
-    { value: "18.4%", label: "Conversion Rate" },
-    { value: "12s", label: "Response Time" }
-  ]
+  const approvedAds = mockAdData.filter(ad => ad.status === 'approved');
+  const adsPerPage = 3;
+  const totalAdPages = Math.ceil(approvedAds.length / adsPerPage);
 
-  const partners = ["FORBES", "TECHCRUNCH", "WIRED", "BLOOMBERG", "THE VERGE", "WALL STREET JOURNAL"]
+  useEffect(() => {
+    if (totalAdPages > 1) {
+      const adInterval = setInterval(() => {
+        setCurrentAdPage((prevPage) => (prevPage + 1) % totalAdPages);
+      }, 5000); // Rotate every 5 seconds
+
+      return () => clearInterval(adInterval);
+    }
+  }, [totalAdPages]);
+
+
+  const partners = ["HIGH STREET STOREFRONT PROMOS", "EXPO", "EVENTS", "WORKSHOPS", "EXPO LIVE STREAMING EVENTS"]
 
   const steps = [
-    { n: "01", t: "Customer Scans QR", d: "Instantly triggers the sequential engine via physical NFC or QR scan at the storefront." },
-    { n: "02", t: "Engine Rotates Logic", d: "Fetches the next valid offer in the queue based on campaign and seasonal rules." },
-    { n: "03", t: "Automated Result", d: "Fresh deal delivered to customer while you collect engagement data in real-time." }
+    { n: "01", t: "Customer Scans QR", d: "A customer triggers the engine with a simple QR scan or NFC tap at the physical storefront." },
+    { n: "02", t: "Sequential Promo & Expo Logic", d: "Our system fetches the next valid offer in the queue based on your campaign and seasonal rules." },
+    { n: "03", t: "Automated Results & Analytics", d: "A fresh deal is delivered to the customer, and you collect valuable engagement data in real-time." }
   ]
+
+  const visibleAds = approvedAds.slice(currentAdPage * adsPerPage, (currentAdPage * adsPerPage) + adsPerPage);
 
   return (
     <div className="app-container">
@@ -77,7 +89,7 @@ function App() {
         {/* Premium Navbar */}
         <nav className={`navbar ${isMenuOpen ? 'menu-active' : ''}`} id="navbar">
           <div className="logo">
-            MCOM<span>.LINKS</span>
+            MCOMQ<span>.LINKS</span>
           </div>
 
           <div className={`nav-links ${isMenuOpen ? 'open' : ''}`}>
@@ -115,17 +127,16 @@ function App() {
         {/* Hero Section */}
         <main className="hero" id="home">
           <section className="hero-left">
-            <div className="badge">✦ The High Street Reimagined</div>
+            <div className="badge">✦ Your High Street Reimagined as an McomQlinks High Street</div>
             <h1 className="main-headline">
-              Digital <span className="gradient-text">Billboard</span> <br />Engine
+              Mcom Digital <span className="gradient-text">Billboard</span> <br />Engine
             </h1>
             <p className="hero-description">
-              A "set-and-forget" marketing machine that helps local businesses grow through
-              automated, sequential offer rotation and real-time engagement analytics.
+              If you are a local high street business owner, you can now claim and register your very own 24/7 Hyperlocal Mcom Expo storefront.
             </p>
             <div className="hero-ctas">
               <Link to="/login" className="btn-premium" style={{ padding: '0.85rem 2rem', fontSize: '0.95rem', textDecoration: 'none' }}>
-                Launch Your Rotator <ArrowRight />
+                Show and Tell with McomQlinks <ArrowRight />
               </Link>
               <button className="btn-ghost" style={{ padding: '0.85rem 2rem', fontSize: '0.95rem', display: 'flex', alignItems: 'center' }}>
                 <PlayIcon /> Watch Demo
@@ -135,7 +146,7 @@ function App() {
 
           <section className="hero-visual">
             <div className="visual-container">
-              <img src={rotatorImg} alt="MCOMLINKS Rotator System" className="main-image" />
+              <img src={rotatorImg} alt="MCOMQLINKS Rotator System" className="main-image" />
             </div>
           </section>
         </main>
@@ -149,23 +160,50 @@ function App() {
           </div>
         </div>
 
-        {/* Stats Bar */}
-        <section className="stats-bar">
-          {stats.map((s, i) => (
-            <div key={i} className="stat-item">
-              <span className="stat-value">{s.value}</span>
-              <span className="stat-label">{s.label}</span>
+        {/* Ad Section */}
+        <section className="ad-section">
+          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+            <h2 className="main-headline" style={{ fontSize: '3rem' }}>Today's <span className="gradient-text">Highlights</span></h2>
+            <p className="hero-description" style={{ margin: '0 auto', maxWidth: '620px' }}>
+              Featured promotions from businesses on your high street, approved by our admin team.
+            </p>
+          </div>
+          <div className="ad-grid">
+            {visibleAds.map((ad, i) => (
+              <div className="ad-card" key={`${currentAdPage}-${i}`}>
+                <div className="ad-image-placeholder">
+                  <span className="ad-image-emoji">{ad.imgPlaceholder}</span>
+                </div>
+                <div className="ad-content">
+                  <span className="ad-category">{ad.category}</span>
+                  <h3 className="ad-title">{ad.title}</h3>
+                  <p className="ad-business">{ad.business}</p>
+                  <button className="ad-cta">View Offer</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          {totalAdPages > 1 && (
+            <div className="ad-pagination">
+              {Array.from({ length: totalAdPages }).map((_, idx) => (
+                <button
+                  key={idx}
+                  className={`ad-dot ${currentAdPage === idx ? 'active' : ''}`}
+                  onClick={() => setCurrentAdPage(idx)}
+                />
+              ))}
             </div>
-          ))}
+          )}
         </section>
+
 
         {/* Features Section */}
         <section className="features-section" id="platform">
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <div className="badge">✦ Core Capabilities</div>
-            <h2 className="main-headline" style={{ fontSize: '3rem' }}>Built Like a <span className="gradient-text">Machine</span></h2>
+            <div className="badge">✦ McomQlinks Promo Show and Tell</div>
+            <h2 className="main-headline" style={{ fontSize: '3rem' }}>Hyperlocal Digital <span className="gradient-text">McomQlinks</span> Storefront</h2>
             <p className="hero-description" style={{ margin: '0 auto', maxWidth: '620px' }}>
-              MCOMLINKS is a sequential delivery engine designed to maximize engagement and remove manual friction from local commerce.
+              McomQlinks is a sequential delivery engine designed to maximize engagement and remove manual friction from local commerce.
             </p>
           </div>
 
@@ -185,8 +223,8 @@ function App() {
           <div className="glass-panel">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }}>
               <div>
-                <div className="badge">✦ The Process</div>
-                <h2 className="main-headline" style={{ fontSize: '2.5rem' }}>From Scan to <span className="gradient-text">Growth</span></h2>
+                <div className="badge">✦ The McomQlinks Process</div>
+                <h2 className="main-headline" style={{ fontSize: '2.5rem' }}>Click, Scan, or Tap <span className="gradient-text">Your Storefront</span></h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2.25rem', marginTop: '2.5rem' }}>
                   {steps.map((step, i) => (
                     <div key={i} style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
@@ -216,7 +254,7 @@ function App() {
                   top: '5%',
                   color: 'var(--primary)',
                   letterSpacing: '-0.05em'
-                }}>MCOM</div>
+                }}>McomQlinks</div>
                 <div className="stat-item" style={{ marginBottom: '2rem' }}>
                   <span className="stat-value">99.9%</span>
                   <span className="stat-label">Uptime Reliability</span>
@@ -232,9 +270,9 @@ function App() {
         {/* Final CTA */}
         <section className="final-cta" style={{ textAlign: 'center', padding: '6rem 0 8rem' }}>
           <div className="badge" style={{ margin: '0 auto 2rem' }}>✦ Ready?</div>
-          <h2 className="main-headline">Ready to transform your <br /><span className="gradient-text">High Street?</span></h2>
+          <h2 className="main-headline">Ready to Engage with the <br /><span className="gradient-text">McomQlinks High Street?</span></h2>
           <p className="hero-description" style={{ margin: '0 auto 3rem', maxWidth: '560px' }}>
-            Join the thousands of businesses already using MCOMLINKS to automate their marketing machine.
+            Join thousands of businesses using the McomQlinks Promo Expo to automate their marketing.
           </p>
           <div className="hero-ctas" style={{ justifyContent: 'center' }}>
             <Link to="/login" className="btn-premium" style={{ padding: '1.1rem 3rem', fontSize: '1.05rem', textDecoration: 'none' }}>
@@ -247,17 +285,17 @@ function App() {
         <footer className="footer">
           <div className="footer-grid">
             <div>
-              <div className="logo">MCOM<span>.LINKS</span></div>
+              <div className="logo">MCOMQ<span>.LINKS</span></div>
               <p style={{ color: 'var(--text-muted)', marginTop: '1.5rem', maxWidth: '300px', lineHeight: '1.7', fontSize: '0.9rem' }}>
-                Revitalizing local commerce through automated digital billboard technology and sequential delivery.
+                Revitalizing local commerce with automated, sequential digital billboard technology for National, Nearby, and Hyperlocal Mcom Promo Expos.
               </p>
             </div>
             <div>
               <h4 style={{ marginBottom: '1.5rem' }}>Platform</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <a href="#" className="nav-link">The Rotator</a>
-                <a href="#" className="nav-link">For Businesses</a>
-                <a href="#" className="nav-link">For Agents</a>
+                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.7' }}>
+                  Active members benefit from our 'done for you' hyperlocal and sequential promo campaigns, managed by our virtual team of agents, account managers, and consultants.
+                </p>
               </div>
             </div>
             <div>
@@ -278,7 +316,7 @@ function App() {
             </div>
           </div>
           <div className="footer-bottom">
-            &copy; 2026 MCOMLINKS. All rights reserved. Built for the future of commerce.
+            &copy; 2026 McomQlinks. All rights reserved. Built for the future of commerce.
           </div>
         </footer>
       </div>

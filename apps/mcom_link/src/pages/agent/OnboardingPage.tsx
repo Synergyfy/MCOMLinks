@@ -290,7 +290,7 @@ export default function OnboardingPage() {
                     <div className="db-card animate-fade-in" style={{ textAlign: 'center', padding: '5rem 2rem' }}>
                         <div className="sf-spinner-ring" style={{ margin: '0 auto 1.5rem', width: '48px', height: '48px' }}></div>
                         <h2 className="db-card-title">Processing Onboarding...</h2>
-                        <p style={{ color: '#64748b' }}>Syncing data with the MCOMLINKS core engine.</p>
+                        <p style={{ color: '#64748b' }}>Syncing data with the MCOMQLINKS core engine.</p>
                     </div>
                 )}
 

@@ -86,6 +86,7 @@ export default function AdminDashboard() {
                             <Link to="/admin/identity" className="db-btn db-btn-ghost" style={{ border: '1px solid rgba(255,255,255,0.2)', color: '#fff', justifyContent: 'center' }}>
                                 Deploy Global Template
                             </Link>
+
                         </div>
                     </div>
 
