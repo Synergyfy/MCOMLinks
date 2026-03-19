@@ -41,6 +41,16 @@ export class UpdateBusinessSettingsDto {
     @IsHexColor()
     @IsOptional()
     secondaryColor?: string;
+
+    @ApiProperty({ example: 'Hyper-local', description: 'Subscription plan' })
+    @IsString()
+    @IsOptional()
+    plan?: string;
+
+    @ApiProperty({ example: 'active', description: 'Subscription status' })
+    @IsString()
+    @IsOptional()
+    subscriptionStatus?: string;
 }
 
 export class BusinessSettingsDto {
@@ -70,4 +80,10 @@ export class BusinessSettingsDto {
 
     @ApiProperty({ example: '#f8fafc' })
     secondaryColor: string;
+
+    @ApiProperty({ example: 'None' })
+    plan: string;
+
+    @ApiProperty({ example: 'pending' })
+    subscriptionStatus: string;
 }

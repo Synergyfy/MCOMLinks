@@ -77,17 +77,20 @@ export default function OffersPage() {
         ctaType: 'claim',
         ctaLabel: 'Claim This Offer',
         redirectUrl: '',
+        googleMapsLocation: '',
         redemptionCode: '',
         mediaType: 'image',
         imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop',
         videoUrl: '',
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        startDate: new Date().toISOString().slice(0, 16),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
         businessName: '',
         isPremium: false,
         season: 'all',
-        visibility: 'national',
+        visibility: 'hyperlocal',
+        exposureType: 'hyperlocal' as 'national' | 'hyperlocal' | 'nearby',
         targetPostcode: '',
+        targetRadius: 5,
         redemptionInstructions: ''
     })
 
@@ -109,11 +112,14 @@ export default function OffersPage() {
                 endDate: newOffer.endDate ? new Date(newOffer.endDate).toISOString() : new Date().toISOString(),
                 ctaLabel: newOffer.ctaLabel,
                 ctaType: newOffer.ctaType,
+                googleMapsLocation: newOffer.googleMapsLocation,
                 redemptionCode: newOffer.ctaType === 'redeem' ? newOffer.redemptionCode : undefined,
-                visibility: newOffer.visibility,
+                exposureType: newOffer.exposureType,
                 targetPostcode: newOffer.targetPostcode,
+                targetRadius: newOffer.targetRadius,
                 isPremium: newOffer.isPremium,
                 status: 'submitted',
+                season: newOffer.season,
             };
 
             if (newOffer.ctaType === 'redirect') {
@@ -122,19 +128,34 @@ export default function OffersPage() {
                 payload.leadDestination = newOffer.redemptionInstructions;
             }
 
-            // For hyper-local, send a post and then show the alert if success
+            // Submit for approval
             await api.post('/dashboard/offers', payload)
 
-            if (newOffer.visibility === 'hyperlocal') {
-                const msg = `Hyperlocal Offer Detected!\n\nPostcode: ${newOffer.targetPostcode}\nRadius: 5 Miles\n\nSystem is checking for existing hubs within 5 miles... None found near ${newOffer.targetPostcode}.\n\n✅ AUTO-PROVISIONING: A new Radius Hub has been created for your business location!`
-                alert(msg)
-            } else {
-                alert("Offer submitted for approval! Our team will review it within 24 hours.")
-            }
+            alert("Offer submitted successfully! It is now pending approval from our administration team. Once approved, it will automatically go live in the rotator.")
 
             setShowModal(false)
             setUploadMode('url')
-            setNewOffer({ headline: '', description: '', ctaType: 'claim', ctaLabel: 'Claim This Offer', redirectUrl: '', redemptionCode: '', mediaType: 'image', imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop', videoUrl: '', startDate: new Date().toISOString().split('T')[0], endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], businessName: '', isPremium: false, season: 'all', visibility: 'national', targetPostcode: '', redemptionInstructions: '' })
+            setNewOffer({ 
+                headline: '', 
+                description: '', 
+                ctaType: 'claim', 
+                ctaLabel: 'Claim This Offer', 
+                redirectUrl: '', 
+                googleMapsLocation: '',
+                redemptionCode: '', 
+                mediaType: 'image', 
+                imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop', 
+                videoUrl: '', 
+                startDate: new Date().toISOString().slice(0, 16), 
+                endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16), 
+                businessName: '', 
+                isPremium: false, 
+                season: 'all', 
+                exposureType: 'hyperlocal', 
+                targetPostcode: '', 
+                targetRadius: 5, 
+                redemptionInstructions: '' 
+            })
 
             // Refresh list
             fetchOffers()
@@ -221,7 +242,19 @@ export default function OffersPage() {
                                         </span>
                                     </td>
                                     <td>
-                                        <div style={{ fontSize: '0.85rem', fontWeight: 600, textTransform: 'capitalize' }}>{offer.ctaType}</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                            {offer.exposureType === 'hyperlocal' ? (
+                                                <span style={{ fontSize: '0.8rem' }}>📍</span>
+                                            ) : offer.exposureType === 'nearby' ? (
+                                                <span style={{ fontSize: '0.8rem' }}>🚀</span>
+                                            ) : (
+                                                <span style={{ fontSize: '0.8rem' }}>🌐</span>
+                                            )}
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>
+                                                {offer.exposureType || 'LOCAL'}
+                                            </span>
+                                        </div>
+                                        <div style={{ fontSize: '0.85rem', fontWeight: 600, textTransform: 'capitalize', marginTop: '0.2rem' }}>{offer.ctaType}</div>
                                     </td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '1rem' }}>
@@ -349,7 +382,10 @@ export default function OffersPage() {
                             <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: '2rem' }}>
                                 <form id="offerForm" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                     <div className="db-form-group">
-                                        <label className="db-label">Offer Headline</label>
+                                        <label className="db-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            Offer Headline
+                                            <span className="db-info-tooltip" title="A clear, catchy title for your offer. e.g. '50% off Pizzas'">ⓘ</span>
+                                        </label>
                                         <input
                                             type="text"
                                             className="db-input"
@@ -358,11 +394,13 @@ export default function OffersPage() {
                                             onChange={(e) => setNewOffer({ ...newOffer, headline: e.target.value })}
                                             required
                                         />
-                                        <small className="db-help">Make it punchy! This is the first thing customers see.</small>
                                     </div>
 
                                     <div className="db-form-group">
-                                        <label className="db-label">Offer Description</label>
+                                        <label className="db-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            Offer Description
+                                            <span className="db-info-tooltip" title="Briefly describe what the customer gets and any terms.">ⓘ</span>
+                                        </label>
                                         <textarea
                                             className="db-input"
                                             style={{ height: '60px', resize: 'none' }}
@@ -373,16 +411,35 @@ export default function OffersPage() {
                                         ></textarea>
                                     </div>
 
+                                    <div className="db-form-group">
+                                        <label className="db-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            Business Location (Address or Postcode)
+                                            <span className="db-info-tooltip" title="This will be used for the 'Getting Here' button to provide Google Maps navigation.">ⓘ</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className="db-input"
+                                            placeholder="e.g. 123 High St, London or SW1A 1AA"
+                                            value={newOffer.googleMapsLocation}
+                                            onChange={(e) => setNewOffer({ ...newOffer, googleMapsLocation: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+
 
                                     <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                            <label className="db-label" style={{ margin: 0, fontSize: '0.8rem' }}>Offer Visual</label>
+                                            <label className="db-label" style={{ margin: 0, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                Offer Visual
+                                                <span className="db-info-tooltip" title="Upload a photo or video of your offer. Motion videos get 40% more scans!">ⓘ</span>
+                                            </label>
                                             <div style={{ display: 'flex', gap: '0.25rem', padding: '0.2rem', background: '#e2e8f0', borderRadius: '0.5rem' }}>
                                                 <button type="button" onClick={() => setUploadMode('url')} style={{ padding: '0.25rem 0.5rem', border: 'none', background: uploadMode === 'url' ? '#fff' : 'transparent', borderRadius: '0.4rem', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}>🔗 Link</button>
                                                 <button type="button" onClick={() => setUploadMode('file')} style={{ padding: '0.25rem 0.5rem', border: 'none', background: uploadMode === 'file' ? '#fff' : 'transparent', borderRadius: '0.4rem', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}>📁 Upload</button>
                                             </div>
                                         </div>
-
+                                        
+                                        {/* ... rest of the visual logic kept below label ... */}
                                         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem' }}>
                                             <button
                                                 type="button"
@@ -409,7 +466,7 @@ export default function OffersPage() {
                                                     className="db-input"
                                                     placeholder={newOffer.mediaType === 'image' ? "Enter Image URL (e.g. Unsplash link)" : "Enter Video URL (MP4/YouTube)"}
                                                     value={newOffer.mediaType === 'image' ? newOffer.imageUrl : newOffer.videoUrl}
-                                                    onChange={(e) => setNewOffer(prev => newOffer.mediaType === 'image' ? { ...prev, imageUrl: e.target.value } : { ...prev, videoUrl: e.target.value })}
+                                                    onChange={(e) => setNewOffer((prev: any) => newOffer.mediaType === 'image' ? { ...prev, imageUrl: e.target.value } : { ...prev, videoUrl: e.target.value })}
                                                     required
                                                 />
                                             </div>
@@ -427,12 +484,14 @@ export default function OffersPage() {
                                                 </label>
                                             </div>
                                         )}
-                                        {newOffer.mediaType === 'video' && <small className="db-help" style={{ color: '#2563eb', display: 'block', marginTop: '0.5rem' }}>Motion thumbnails increase engagement by 40%!</small>}
                                     </div>
 
                                     <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <div className="db-form-group">
-                                            <label className="db-label">CTA Action</label>
+                                            <label className="db-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                CTA Action
+                                                <span className="db-info-tooltip" title="What should happen when they click the big button?">ⓘ</span>
+                                            </label>
                                             <select
                                                 className="db-input"
                                                 value={newOffer.ctaType}
@@ -444,7 +503,10 @@ export default function OffersPage() {
                                             </select>
                                         </div>
                                         <div className="db-form-group">
-                                            <label className="db-label">Button Label</label>
+                                            <label className="db-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                Button Label
+                                                <span className="db-info-tooltip" title="The text displayed on the main call-to-action button.">ⓘ</span>
+                                            </label>
                                             <input
                                                 type="text"
                                                 className="db-input"
@@ -456,7 +518,10 @@ export default function OffersPage() {
 
                                     {newOffer.ctaType === 'redirect' && (
                                         <div className="db-form-group">
-                                            <label className="db-label">Target Website URL</label>
+                                            <label className="db-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                Target Website URL
+                                                <span className="db-info-tooltip" title="Where should the customer be sent?">ⓘ</span>
+                                            </label>
                                             <input
                                                 type="url"
                                                 className="db-input"
@@ -471,7 +536,10 @@ export default function OffersPage() {
                                     {newOffer.ctaType === 'redeem' && (
                                         <>
                                             <div className="db-form-group">
-                                                <label className="db-label">Redemption Code</label>
+                                                <label className="db-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                    Redemption Code
+                                                    <span className="db-info-tooltip" title="A secret code they can show you in person or use online.">ⓘ</span>
+                                                </label>
                                                 <input
                                                     type="text"
                                                     className="db-input"
@@ -482,7 +550,10 @@ export default function OffersPage() {
                                                 />
                                             </div>
                                             <div className="db-form-group">
-                                                <label className="db-label">Where to Use Instruction</label>
+                                                <label className="db-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                    Where to Use Instruction
+                                                    <span className="db-info-tooltip" title="Tell customers how to redeem this code.">ⓘ</span>
+                                                </label>
                                                 <textarea
                                                     className="db-input"
                                                     style={{ height: '60px', resize: 'none' }}
@@ -497,7 +568,10 @@ export default function OffersPage() {
 
                                     {newOffer.ctaType === 'claim' && (
                                         <div className="db-form-group">
-                                            <label className="db-label">Lead Destination (Email/Phone)</label>
+                                            <label className="db-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                Lead Destination (Email/Phone)
+                                                <span className="db-info-tooltip" title="Enter the email address or phone number where we should send customer leads.">ⓘ</span>
+                                            </label>
                                             <input
                                                 type="text"
                                                 className="db-input"
@@ -506,24 +580,47 @@ export default function OffersPage() {
                                                 onChange={(e) => setNewOffer({ ...newOffer, redemptionInstructions: e.target.value })}
                                                 required
                                             />
-                                            <small className="db-help">Leads will be forwarded to this contact.</small>
                                         </div>
                                     )}
 
+                                    <div className="db-form-group">
+                                        <label className="db-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                            Campaign Season
+                                            <span className="db-info-tooltip" title="Select the season this offer belongs to for better rotator placement.">ⓘ</span>
+                                        </label>
+                                        <select
+                                            className="db-input"
+                                            value={newOffer.season}
+                                            onChange={(e) => setNewOffer({ ...newOffer, season: e.target.value as any })}
+                                        >
+                                            <option value="all">All Seasons (Default)</option>
+                                            <option value="spring">Spring Collection</option>
+                                            <option value="summer">Summer Specials</option>
+                                            <option value="autumn">Autumn Deals</option>
+                                            <option value="winter">Winter / Festive</option>
+                                        </select>
+                                    </div>
+
                                     <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <div className="db-form-group">
-                                            <label className="db-label">Start Date</label>
+                                            <label className="db-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                Start Date & Time
+                                                <span className="db-info-tooltip" title="When should the offer start appearing?">ⓘ</span>
+                                            </label>
                                             <input
-                                                type="date"
+                                                type="datetime-local"
                                                 className="db-input"
                                                 value={newOffer.startDate}
                                                 onChange={(e) => setNewOffer({ ...newOffer, startDate: e.target.value })}
                                             />
                                         </div>
                                         <div className="db-form-group">
-                                            <label className="db-label">End Date</label>
+                                            <label className="db-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                End Date & Time
+                                                <span className="db-info-tooltip" title="When should the offer automatically expire?">ⓘ</span>
+                                            </label>
                                             <input
-                                                type="date"
+                                                type="datetime-local"
                                                 className="db-input"
                                                 value={newOffer.endDate}
                                                 onChange={(e) => setNewOffer({ ...newOffer, endDate: e.target.value })}

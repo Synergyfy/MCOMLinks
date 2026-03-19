@@ -81,8 +81,8 @@ model BusinessProfile {
   primaryColor       String  @default("#2563eb")
   secondaryColor     String  @default("#f8fafc")
   ownerName          String  @default("")
-  plan               String  @default("Basic") // Basic, Premium
-  subscriptionStatus String  @default("active") // active, suspended
+  plan               String  @default("None") // None, Hyper-local, Nearby, National
+  subscriptionStatus String  @default("pending") // active, suspended, pending
   user               User    @relation(fields: [userId], references: [id])
   userId             String  @unique
   agent              User?   @relation("AgentBusinesses", fields: [agentId], references: [id])

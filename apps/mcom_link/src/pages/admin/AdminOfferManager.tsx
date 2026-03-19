@@ -11,11 +11,16 @@ export default function AdminOfferManager() {
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState<StatusTab>('all')
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+    const [wizardStep, setWizardStep] = useState(1)
     const [uploadMode, setUploadMode] = useState<'url' | 'file'>('url')
 
     // Rejection modal state
     const [rejectTarget, setRejectTarget] = useState<string | null>(null)
     const [rejectionReason, setRejectionReason] = useState('')
+
+    // Edit modal state
+    const [editTarget, setEditTarget] = useState<any | null>(null)
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -27,6 +32,12 @@ export default function AdminOfferManager() {
                 setNewOffer({ ...newOffer, videoUrl: url })
             }
         }
+    }
+
+    // Helper to format date-time for display
+    const formatDisplayDate = (dateStr: string) => {
+        if (!dateStr) return '—'
+        return dateStr.replace('T', ' ')
     }
 
     const [newOffer, setNewOffer] = useState({
@@ -44,7 +55,9 @@ export default function AdminOfferManager() {
         location: 'High Street Central',
         isPremium: false,
         season: 'all' as any,
-        visibility: 'national' as 'national' | 'hyperlocal',
+        exposureType: 'national' as 'national' | 'hyperlocal' | 'nearby',
+        rotatorWeight: 100,
+        targetRadius: 5,
         targetPostcode: ''
     })
 
@@ -97,7 +110,7 @@ export default function AdminOfferManager() {
     }
 
     const handleArchive = async (id: string) => {
-        if (confirm('Archive this offer? It will be removed from rotation but kept in analytics history.')) {
+        if (confirm('Archive this offer? It will be removed from circulation but kept in analytics history.')) {
             try {
                 await api.delete(`/admin/offers/${id}`)
                 fetchOffers() // Refresh list
@@ -118,6 +131,25 @@ export default function AdminOfferManager() {
         }
     }
 
+    const handleEdit = (offer: any) => {
+        setEditTarget({ ...offer })
+        setIsEditModalOpen(true)
+    }
+
+    const handleUpdateOffer = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!editTarget) return
+        try {
+            await api.patch(`/admin/offers/${editTarget.id}`, editTarget)
+            setIsEditModalOpen(false)
+            setEditTarget(null)
+            fetchOffers() // Refresh list
+        } catch (error) {
+            console.error('Failed to update offer:', error)
+            alert('Failed to update offer')
+        }
+    }
+
     const handleAddOffer = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
@@ -133,7 +165,9 @@ export default function AdminOfferManager() {
                 videoUrl: newOffer.videoUrl,
                 startDate: newOffer.startDate,
                 endDate: newOffer.endDate,
-                visibility: newOffer.visibility,
+                exposureType: newOffer.exposureType,
+                rotatorWeight: newOffer.rotatorWeight,
+                targetRadius: newOffer.targetRadius,
                 targetPostcode: newOffer.targetPostcode,
                 isPremium: newOffer.isPremium,
                 assignedLocation: newOffer.location,
@@ -142,6 +176,7 @@ export default function AdminOfferManager() {
 
             await api.post('/admin/offers', payload)
             setIsAddModalOpen(false)
+            setWizardStep(1)
             fetchOffers() // Refresh list
             setNewOffer({
                 businessName: '',
@@ -158,7 +193,9 @@ export default function AdminOfferManager() {
                 location: 'High Street Central',
                 isPremium: false,
                 season: 'all',
-                visibility: 'national',
+                exposureType: 'national',
+                rotatorWeight: 100,
+                targetRadius: 5,
                 targetPostcode: ''
             })
         } catch (error) {
@@ -275,7 +312,8 @@ export default function AdminOfferManager() {
                                 <tr>
                                     <th>Offer Details</th>
                                     <th>Status</th>
-                                    <th>Type</th>
+                                    <th>Exposure</th>
+                                    <th>Weighting</th>
                                     <th>Performance</th>
                                     <th>Schedule</th>
                                     <th style={{ textAlign: 'right' }}>Actions</th>
@@ -308,40 +346,67 @@ export default function AdminOfferManager() {
 
                                         {/* Status */}
                                         <td>
-                                            <span className={`db-badge db-badge-${offer.status}`}>
-                                                {offer.status === 'submitted' ? 'PENDING' : offer.status.toUpperCase()}
-                                            </span>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                                <span className={`db-badge db-badge-${offer.status}`}>
+                                                    {offer.status === 'submitted' ? 'PENDING' : offer.status.toUpperCase()}
+                                                </span>
+                                                {offer.billingStatus === 'suspended' && (
+                                                    <span style={{ fontSize: '0.65rem', color: '#dc2626', fontWeight: 800, background: '#fef2f2', padding: '0.25rem 0.5rem', borderRadius: '0.375rem', border: '1px solid #fee2e2', textAlign: 'center' }}>
+                                                        🚫 BILLING SUSPENDED
+                                                    </span>
+                                                )}
+                                            </div>
                                             {offer.status === 'rejected' && (offer as any).rejectionReason && (
                                                 <div style={{ fontSize: '0.65rem', color: '#ef4444', marginTop: '0.35rem', maxWidth: '160px' }} title={(offer as any).rejectionReason}>
                                                     {(offer as any).rejectionReason.slice(0, 40)}{(offer as any).rejectionReason.length > 40 ? '…' : ''}
                                                 </div>
                                             )}
                                         </td>
-
-                                        {/* Type */}
+                                        {/* Exposure */}
                                         <td>
-                                            <div style={{ fontSize: '0.85rem', fontWeight: 600, textTransform: 'capitalize' }}>
-                                                {offer.ctaType}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                {offer.exposureType === 'hyperlocal' ? (
+                                                    <span style={{ fontSize: '0.8rem' }}>📍</span>
+                                                ) : offer.exposureType === 'nearby' ? (
+                                                    <span style={{ fontSize: '0.8rem' }}>🚀</span>
+                                                ) : (
+                                                    <span style={{ fontSize: '0.8rem' }}>🌐</span>
+                                                )}
+                                                <span style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                                                    {offer.exposureType || 'National'}
+                                                </span>
                                             </div>
-                                            {offer.isPremium && (
-                                                <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#f59e0b', marginTop: '0.2rem' }}>★ Premium</div>
+                                            {offer.targetPostcode && (
+                                                <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '0.2rem' }}>
+                                                    {offer.targetPostcode} {offer.targetRadius ? `(+${offer.targetRadius}km)` : ''}
+                                                </div>
                                             )}
+                                        </td>
+
+                                        {/* Priority/Weight */}
+                                        <td>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#2563eb' }}>{offer.rotatorWeight || 100}%</div>
+                                                <div style={{ width: '60px', height: '4px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                                                    <div style={{ width: `${offer.rotatorWeight || 100}%`, height: '100%', background: '#2563eb' }}></div>
+                                                </div>
+                                            </div>
                                         </td>
 
                                         {/* Performance */}
                                         <td>
-                                            <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>{offer.scans} Scans</div>
+                                            <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>{offer.scans || 0} Scans</div>
                                             <div style={{ fontSize: '0.7rem', color: '#10b981' }}>
                                                 {offer.scans > 0
-                                                    ? ((offer.claims / offer.scans) * 100).toFixed(1)
+                                                    ? (((offer.claims || 0) / (offer.scans || 1)) * 100).toFixed(1)
                                                     : 0}% Conv.
                                             </div>
                                         </td>
 
                                         {/* Schedule */}
                                         <td>
-                                            <div style={{ fontSize: '0.75rem', fontWeight: 600 }}>{offer.startDate}</div>
-                                            <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>to {offer.endDate}</div>
+                                            <div style={{ fontSize: '0.75rem', fontWeight: 600 }}>{formatDisplayDate(offer.startDate)}</div>
+                                            <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>to {formatDisplayDate(offer.endDate)}</div>
                                         </td>
 
                                         {/* Actions */}
@@ -367,6 +432,21 @@ export default function AdminOfferManager() {
                                                         </button>
                                                     </>
                                                 )}
+                                                <button 
+                                                    className="db-btn db-btn-ghost" 
+                                                    style={{ padding: '0.4rem', color: offer.billingStatus === 'suspended' ? '#10b981' : '#dc2626' }}
+                                                    title={offer.billingStatus === 'suspended' ? 'Unlock Account' : 'Suspend Billing'}
+                                                    onClick={() => setOffers(offers.map(o => o.id === offer.id ? { ...o, billingStatus: o.billingStatus === 'suspended' ? 'active' : 'suspended' } : o))}
+                                                >
+                                                    {offer.billingStatus === 'suspended' ? (
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                                                    ) : (
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                                                    )}
+                                                </button>
+                                                <button className="db-btn db-btn-ghost" style={{ padding: '0.4rem' }} title="Edit Offer" onClick={() => handleEdit(offer)}>
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
+                                                </button>
                                                 <button className="db-btn db-btn-ghost" style={{ padding: '0.4rem' }} title="Duplicate" onClick={() => handleDuplicate(offer.id)}>
                                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
                                                 </button>
@@ -504,18 +584,30 @@ export default function AdminOfferManager() {
                 </div>
             )}
 
-            {/* Create Global Offer Modal */}
             {isAddModalOpen && (
                 <div className="db-modal-overlay">
-                    <div className="db-modal">
-                        <div className="db-modal-header">
-                            <h3 className="db-card-title">Create Global Campaign Offer</h3>
-                            <button onClick={() => { setIsAddModalOpen(false); setUploadMode('url'); }} className="db-btn-close">&times;</button>
+                    <div className="db-modal" style={{ maxWidth: '600px' }}>
+                        <div className="db-modal-header" style={{ padding: '1.5rem 1.5rem 1rem' }}>
+                            <div>
+                                <h3 className="db-card-title">Provision Global Campaign</h3>
+                                <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.75rem' }}>
+                                    {[1, 2, 3].map(s => (
+                                        <div key={s} style={{ 
+                                            height: '4px', flex: 1, borderRadius: '2px', 
+                                            background: s <= wizardStep ? '#2563eb' : '#e2e8f0',
+                                            transition: 'background 0.3s'
+                                        }} />
+                                    ))}
+                                </div>
+                            </div>
+                            <button onClick={() => { setIsAddModalOpen(false); setWizardStep(1); setUploadMode('url'); }} className="db-btn-close">&times;</button>
                         </div>
                         <form onSubmit={handleAddOffer}>
-                            <div className="db-modal-content">
-                                <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <div className="db-modal-content" style={{ padding: '1.5rem', minHeight: '400px' }}>
+                                
+                                {wizardStep === 1 && (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase' }}>Step 1: Creative Identity</div>
                                         <div className="db-form-group">
                                             <label className="db-label">Business Name</label>
                                             <input type="text" className="db-input" required placeholder="e.g. Marco's Pizza" value={newOffer.businessName} onChange={e => setNewOffer({ ...newOffer, businessName: e.target.value })} />
@@ -555,55 +647,99 @@ export default function AdminOfferManager() {
                                                 </label>
                                             )}
                                         </div>
-
-                                        <div className="db-form-group">
-                                            <label className="db-label">CTA Type</label>
-                                            <select className="db-input" value={newOffer.ctaType} onChange={e => setNewOffer({ ...newOffer, ctaType: e.target.value as any })}>
-                                                <option value="claim">Lead Claim (Email/Phone)</option>
-                                                <option value="redeem">Direct Promo Code</option>
-                                                <option value="redirect">External Website Visit</option>
-                                            </select>
-                                        </div>
-                                        {newOffer.ctaType === 'redirect' && (
-                                            <div className="db-form-group">
-                                                <label className="db-label">Destination Link</label>
-                                                <input type="url" className="db-input" required placeholder="https://..." value={newOffer.ctaValue} onChange={e => setNewOffer({ ...newOffer, ctaValue: e.target.value })} />
-                                            </div>
-                                        )}
-                                        {newOffer.ctaType === 'redeem' && (
-                                            <div className="db-form-group">
-                                                <label className="db-label">Promo Code</label>
-                                                <input type="text" className="db-input" required placeholder="e.g. SAVE20" value={newOffer.ctaValue} onChange={e => setNewOffer({ ...newOffer, ctaValue: e.target.value })} />
-                                            </div>
-                                        )}
-                                        {newOffer.ctaType === 'claim' && (
-                                            <div className="db-form-group">
-                                                <label className="db-label">Claim Contact (Email/Phone)</label>
-                                                <input type="text" className="db-input" required placeholder="e.g. offers@marco.com" value={newOffer.ctaValue} onChange={e => setNewOffer({ ...newOffer, ctaValue: e.target.value })} />
-                                            </div>
-                                        )}
                                     </div>
+                                )}
 
+                                {wizardStep === 2 && (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase' }}>Step 2: Targeting & Rotation Logic</div>
+                                        
+                                        <div style={{ padding: '1.25rem', background: '#f0f9ff', borderRadius: '1rem', border: '1px solid #bae6fd' }}>
+                                            <label className="db-label">Campaign Exposure Layer</label>
+                                            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                                                <button type="button" onClick={() => setNewOffer({ ...newOffer, exposureType: 'national' })} className={`db-btn ${newOffer.exposureType === 'national' ? 'db-btn-primary' : 'db-btn-ghost'}`} style={{ flex: 1, padding: '0.5rem', fontSize: '0.7rem' }}>🌐 National</button>
+                                                <button type="button" onClick={() => setNewOffer({ ...newOffer, exposureType: 'hyperlocal' })} className={`db-btn ${newOffer.exposureType === 'hyperlocal' ? 'db-btn-primary' : 'db-btn-ghost'}`} style={{ flex: 1, padding: '0.5rem', fontSize: '0.7rem' }}>📍 Local</button>
+                                                <button type="button" onClick={() => setNewOffer({ ...newOffer, exposureType: 'nearby' })} className={`db-btn ${newOffer.exposureType === 'nearby' ? 'db-btn-primary' : 'db-btn-ghost'}`} style={{ flex: 1, padding: '0.5rem', fontSize: '0.7rem' }}>🚀 Nearby</button>
+                                            </div>
+
+                                            {newOffer.exposureType !== 'national' && (
+                                                <div style={{ marginBottom: '1rem' }}>
+                                                    <label className="db-label">Target {newOffer.exposureType === 'hyperlocal' ? 'Postcode' : 'Central Postcode'}</label>
+                                                    <input type="text" className="db-input" placeholder="e.g. W1F 0AA" value={newOffer.targetPostcode} onChange={e => setNewOffer({ ...newOffer, targetPostcode: e.target.value.toUpperCase() })} required />
+                                                </div>
+                                            )}
+
+                                            {newOffer.exposureType === 'nearby' && (
+                                                <div style={{ marginBottom: '1rem' }}>
+                                                    <label className="db-label">Expansion Radius (km)</label>
+                                                    <input type="number" className="db-input" value={newOffer.targetRadius} onChange={e => setNewOffer({ ...newOffer, targetRadius: parseInt(e.target.value) || 0 })} />
+                                                </div>
+                                            )}
+
+                                            <div style={{ marginTop: '0.5rem' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                                                    <label className="db-label" style={{ margin: 0 }}>Display Priority (Weight)</label>
+                                                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb' }}>{newOffer.rotatorWeight}%</span>
+                                                </div>
+                                                <input 
+                                                    type="range" 
+                                                    min="1" 
+                                                    max="100" 
+                                                    value={newOffer.rotatorWeight}
+                                                    onChange={(e) => setNewOffer({ ...newOffer, rotatorWeight: parseInt(e.target.value) })}
+                                                    style={{ width: '100%' }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                            <input type="checkbox" id="premium-toggle" checked={newOffer.isPremium} onChange={e => setNewOffer({ ...newOffer, isPremium: e.target.checked })} style={{ width: '18px', height: '18px' }} />
+                                            <div>
+                                                <label htmlFor="premium-toggle" style={{ fontWeight: 800, fontSize: '0.85rem', display: 'block' }}>Priority Boost (Star Placement)</label>
+                                                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Force this offer to the beginning of the sequence.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {wizardStep === 3 && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase' }}>Step 3: Operation & Schedule</div>
+                                        
                                         <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                             <div className="db-form-group">
-                                                <label className="db-label">Start Date</label>
-                                                <input type="date" className="db-input" required value={newOffer.startDate} onChange={e => setNewOffer({ ...newOffer, startDate: e.target.value })} />
+                                                <label className="db-label">Start Date & Time</label>
+                                                <input type="datetime-local" className="db-input" required value={newOffer.startDate} onChange={e => setNewOffer({ ...newOffer, startDate: e.target.value })} />
                                             </div>
                                             <div className="db-form-group">
-                                                <label className="db-label">End Date</label>
-                                                <input type="date" className="db-input" required value={newOffer.endDate} onChange={e => setNewOffer({ ...newOffer, endDate: e.target.value })} />
+                                                <label className="db-label">End Date & Time</label>
+                                                <input type="datetime-local" className="db-input" required value={newOffer.endDate} onChange={e => setNewOffer({ ...newOffer, endDate: e.target.value })} />
+                                            </div>
+                                        </div>
+
+                                        <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div className="db-form-group">
+                                                <label className="db-label">CTA Mode</label>
+                                                <select className="db-input" value={newOffer.ctaType} onChange={e => setNewOffer({ ...newOffer, ctaType: e.target.value as any })}>
+                                                    <option value="claim">Lead Capture</option>
+                                                    <option value="redeem">Promo Code</option>
+                                                    <option value="redirect">Link Click</option>
+                                                </select>
+                                            </div>
+                                            <div className="db-form-group">
+                                                <label className="db-label">Target Hub</label>
+                                                <select className="db-input" value={newOffer.location} onChange={e => setNewOffer({ ...newOffer, location: e.target.value })}>
+                                                    <option>High Street Central</option>
+                                                    <option>Mall North Wing</option>
+                                                    <option>East Plaza Square</option>
+                                                    <option>West End Hub</option>
+                                                </select>
                                             </div>
                                         </div>
 
                                         <div className="db-form-group">
-                                            <label className="db-label">Assigned Location</label>
-                                            <select className="db-input" value={newOffer.location} onChange={e => setNewOffer({ ...newOffer, location: e.target.value })}>
-                                                <option>High Street Central</option>
-                                                <option>Mall North Wing</option>
-                                                <option>East Plaza Square</option>
-                                                <option>West End Hub</option>
-                                            </select>
+                                            <label className="db-label">Action Value ({newOffer.ctaType === 'redirect' ? 'URL' : newOffer.ctaType === 'redeem' ? 'Code' : 'Contact'})</label>
+                                            <input type="text" className="db-input" required placeholder="Enter value..." value={newOffer.ctaValue} onChange={e => setNewOffer({ ...newOffer, ctaValue: e.target.value })} />
                                         </div>
 
                                         <div className="db-form-group">
@@ -617,45 +753,154 @@ export default function AdminOfferManager() {
                                                     setNewOffer({ ...newOffer, season: selectedValue as any })
                                                 }
                                             }}>
-                                                <option value="all">Evergreen (Default)</option>
-                                                <option value="winter">Winter Campaign</option>
-                                                <option value="spring">Spring Campaign</option>
-                                                <option value="summer">Summer Campaign</option>
-                                                <option value="autumn">Autumn Campaign</option>
+                                                <option value="all">Evergreen (Active Year-Round)</option>
+                                                <option value="winter">Winter Campaign Window</option>
+                                                <option value="spring">Spring Campaign Window</option>
+                                                <option value="summer">Summer Campaign Window</option>
+                                                <option value="autumn">Autumn Campaign Window</option>
                                             </select>
                                         </div>
-
-                                        <div style={{ padding: '1.25rem', background: '#f0f9ff', borderRadius: '1rem', border: '1px solid #bae6fd' }}>
-                                            <label className="db-label">Campaign Visibility</label>
-                                            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-                                                <button type="button" onClick={() => setNewOffer({ ...newOffer, visibility: 'national' })} className={`db-btn ${newOffer.visibility === 'national' ? 'db-btn-primary' : 'db-btn-ghost'}`} style={{ flex: 1, padding: '0.5rem', fontSize: '0.75rem' }}>🌐 National</button>
-                                                <button type="button" onClick={() => setNewOffer({ ...newOffer, visibility: 'hyperlocal' })} className={`db-btn ${newOffer.visibility === 'hyperlocal' ? 'db-btn-primary' : 'db-btn-ghost'}`} style={{ flex: 1, padding: '0.5rem', fontSize: '0.75rem' }}>📍 Hyperlocal</button>
-                                            </div>
-                                            {newOffer.visibility === 'hyperlocal' ? (
-                                                <div>
-                                                    <label className="db-label">Target Area (Postcode)</label>
-                                                    <input type="text" className="db-input" placeholder="e.g. W1F 0AA" value={newOffer.targetPostcode} onChange={e => setNewOffer({ ...newOffer, targetPostcode: e.target.value.toUpperCase() })} required />
-                                                </div>
-                                            ) : (
-                                                <p style={{ fontSize: '0.65rem', color: '#64748b', margin: 0 }}>National offers appear across all standard rotator hubs in the country.</p>
-                                            )}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="db-modal-footer" style={{ borderTop: '1px solid #f1f5f9', padding: '1.25rem 1.5rem', display: 'flex', gap: '1rem' }}>
+                                {wizardStep > 1 && (
+                                    <button type="button" className="db-btn db-btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setWizardStep(wizardStep - 1)}>
+                                        ← Back
+                                    </button>
+                                )}
+                                {wizardStep < 3 ? (
+                                    <button type="button" className="db-btn db-btn-primary" style={{ flex: 2, justifyContent: 'center' }} onClick={() => setWizardStep(wizardStep + 1)}>
+                                        Next Step →
+                                    </button>
+                                ) : (
+                                    <button type="submit" className="db-btn" style={{ flex: 2, justifyContent: 'center', background: '#10b981', color: '#fff' }}>
+                                        Provision Global Offer
+                                    </button>
+                                )}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+            {/* Edit Offer Modal */}
+            {isEditModalOpen && editTarget && (
+                <div className="db-modal-overlay" onClick={() => setIsEditModalOpen(false)}>
+                    <div className="db-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '800px' }}>
+                        <div className="db-modal-header" style={{ padding: '1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h1 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>Edit Exposure & Precision Weights</h1>
+                                <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>Adjust how this offer behaves in the delivery network.</p>
+                            </div>
+                            <button className="db-modal-close" onClick={() => setIsEditModalOpen(false)}>✕</button>
+                        </div>
+                        <form onSubmit={handleUpdateOffer}>
+                            <div className="db-modal-content" style={{ maxHeight: '70vh', overflowY: 'auto', padding: '1.5rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2rem' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                        <div className="db-form-group">
+                                            <label className="db-label">Campaign Headline</label>
+                                            <input type="text" className="db-input" value={editTarget.headline} onChange={e => setEditTarget({ ...editTarget, headline: e.target.value })} required />
                                         </div>
+                                        <div className="db-form-group">
+                                            <label className="db-label">Exposure Layer</label>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+                                                {['national', 'hyperlocal', 'nearby'].map(type => (
+                                                    <button 
+                                                        key={type}
+                                                        type="button"
+                                                        onClick={() => setEditTarget({ ...editTarget, exposureType: type as any })}
+                                                        style={{ 
+                                                            padding: '0.5rem', borderRadius: '0.5rem', border: 'none', 
+                                                            fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer',
+                                                            background: editTarget.exposureType === type ? '#2563eb' : '#f1f5f9',
+                                                            color: editTarget.exposureType === type ? '#fff' : '#64748b'
+                                                        }}
+                                                    >
+                                                        {type.toUpperCase()}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {editTarget.exposureType !== 'national' && (
+                                            <div className="db-form-group">
+                                                <label className="db-label">Central Postcode (Anchor)</label>
+                                                <input type="text" className="db-input" value={editTarget.targetPostcode || ''} onChange={e => setEditTarget({ ...editTarget, targetPostcode: e.target.value.toUpperCase() })} required />
+                                            </div>
+                                        )}
+                                        {editTarget.exposureType === 'nearby' && (
+                                            <div className="db-form-group">
+                                                <label className="db-label">Expansion Radius (km)</label>
+                                                <input type="number" className="db-input" value={editTarget.targetRadius || 5} onChange={e => setEditTarget({ ...editTarget, targetRadius: parseInt(e.target.value) })} />
+                                            </div>
+                                        )}
+                                    </div>
 
-                                        <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                            <input type="checkbox" id="premium-toggle" checked={newOffer.isPremium} onChange={e => setNewOffer({ ...newOffer, isPremium: e.target.checked })} style={{ width: '18px', height: '18px' }} />
-                                            <div>
-                                                <label htmlFor="premium-toggle" style={{ fontWeight: 800, fontSize: '0.85rem', display: 'block' }}>Priority Placement (Boost)</label>
-                                                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Always shows at the top of the rotation.</span>
+                                    <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '1.5rem', border: '1px solid #e2e8f0' }}>
+                                        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                                            <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#2563eb', lineHeight: 1 }}>{editTarget.rotatorWeight}%</div>
+                                            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Display Priority (Intensity)</div>
+                                        </div>
+                                        
+                                        <input 
+                                            type="range" 
+                                            min="0" 
+                                            max="100" 
+                                            step="5" 
+                                            className="admin-slider" 
+                                            value={editTarget.rotatorWeight || 100} 
+                                            onChange={e => setEditTarget({ ...editTarget, rotatorWeight: parseInt(e.target.value) })} 
+                                            style={{ width: '100%', accentColor: '#2563eb' }} 
+                                        />
+                                        
+                                        <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                                                💡 <b>Tip:</b> A weight of 100% means this offer has full priority in its group until other offers are added.
+                                            </div>
+                                            <div style={{ padding: '1rem', background: '#fff', borderRadius: '0.75rem', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                <input type="checkbox" id="edit-premium" checked={editTarget.isPremium} onChange={e => setEditTarget({ ...editTarget, isPremium: e.target.checked })} />
+                                                <label htmlFor="edit-premium" style={{ fontSize: '0.8rem', fontWeight: 800 }}>Priority Override (Top)</label>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+                                <div className="db-form-group" style={{ marginTop: '1.5rem' }}>
+                                    <label className="db-label">Offer Details & Copy</label>
+                                    <textarea className="db-input" style={{ height: '80px', resize: 'none' }} value={editTarget.description} onChange={e => setEditTarget({ ...editTarget, description: e.target.value })} required />
+                                </div>
                             </div>
-                            <div className="db-modal-footer" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                                <button type="button" className="db-btn db-btn-ghost" onClick={() => setIsAddModalOpen(false)} style={{ flex: 1, justifyContent: 'center' }}>Cancel</button>
-                                <button type="submit" className="db-btn db-btn-primary" style={{ flex: 1, justifyContent: 'center' }}>Provision Global Offer</button>
+                            <div className="db-modal-footer" style={{ borderTop: '1px solid #f1f5f9', padding: '1.25rem 1.5rem' }}>
+                                <button type="button" className="db-btn db-btn-ghost" onClick={() => setIsEditModalOpen(false)}>Cancel Changes</button>
+                                <button type="submit" className="db-btn db-btn-primary" style={{ paddingLeft: '2rem', paddingRight: '2rem' }}>Apply Final Rule</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Reject Modal */}
+            {rejectTarget && (
+                <div className="db-modal-overlay" onClick={() => setRejectTarget(null)}>
+                    <div className="db-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+                        <div className="db-modal-header">
+                            <h2 className="db-card-title">Reject Offer</h2>
+                            <button className="db-modal-close" onClick={() => setRejectTarget(null)}>✕</button>
+                        </div>
+                        <div className="db-modal-content">
+                            <p style={{ fontSize: '0.85rem', marginBottom: '1rem', color: '#64748b' }}>Provide a reason so the business owner can fix it.</p>
+                            <textarea
+                                className="db-input"
+                                style={{ height: '100px', resize: 'none' }}
+                                placeholder="e.g. Image is too low resolution, or typo in headline..."
+                                value={rejectionReason}
+                                onChange={e => setRejectionReason(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+                        <div className="db-modal-footer">
+                            <button className="db-btn db-btn-ghost" onClick={() => setRejectTarget(null)}>Cancel</button>
+                            <button className="db-btn" style={{ background: '#ef4444', color: '#fff' }} onClick={handleConfirmReject} disabled={!rejectionReason.trim()}>Confirm Rejection</button>
+                        </div>
                     </div>
                 </div>
             )}

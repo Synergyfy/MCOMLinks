@@ -20,6 +20,8 @@ const NavIcon = ({ type, size = 20 }: { type: string; size?: number }) => {
             return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" /><path d="M8 12h.01" /><path d="M12 12h.01" /><path d="M16 12h.01" /></svg>
         case 'settings':
             return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
+        case 'billing':
+            return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="5" rx="2" /><line x1="2" x2="22" y1="10" y2="10" /></svg>
         case 'logout':
             return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
         default:
@@ -31,7 +33,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
     const location = useLocation()
     const navigate = useNavigate()
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-    const [profile, setProfile] = useState<{name?: string, logoUrl?: string, ownerName?: string}>({})
+    const [profile, setProfile] = useState<{name?: string, logoUrl?: string, ownerName?: string, plan?: string, subscriptionStatus?: string}>({})
 
     const storedUserStr = localStorage.getItem('user');
     const storedUser = storedUserStr ? JSON.parse(storedUserStr) : null;
@@ -39,24 +41,62 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
     useEffect(() => {
         const fetchProfile = async () => {
             try {
+                // Try to get from API first (legacy/other settings)
                 const data = await api.get<any>('/dashboard/settings')
+                
+                // Overlay local storage mocks for plan/status as requested by USER
+                const mockPlan = localStorage.getItem('mock_user_plan')
+                const mockStatus = localStorage.getItem('mock_user_status')
+
                 if (data) {
                     setProfile({
                         name: data.name,
                         logoUrl: data.logoUrl,
-                        ownerName: data.ownerName
+                        ownerName: data.ownerName,
+                        plan: mockPlan || data.plan || 'None',
+                        subscriptionStatus: mockStatus || data.subscriptionStatus || 'pending'
                     })
                 }
             } catch (err) {
-                // Ignore API error since it might just mean no profile is setup yet
+                // Fallback to local storage if API fails
+                const mockPlan = localStorage.getItem('mock_user_plan')
+                const mockStatus = localStorage.getItem('mock_user_status')
+                setProfile({
+                    plan: mockPlan || 'None',
+                    subscriptionStatus: mockStatus || 'pending'
+                })
             }
         }
+        
         fetchProfile()
+
+        // Listen for profile updates from other components (like BillingPage)
+        window.addEventListener('profile-updated', fetchProfile)
+        
+        return () => {
+            window.removeEventListener('profile-updated', fetchProfile)
+        }
     }, [])
+
+    const isPlanless = !profile.plan || profile.plan === 'None';
+
+    // ACTIVE PROTECTION: Redirect to billing if trying to access a locked page directly via URL
+    useEffect(() => {
+        if (isPlanless && profile.plan !== undefined) { // Wait for first load
+            const unlockedPaths = ['/dashboard/billing', '/dashboard/support'];
+            const isCurrentlyOnLockedPath = !unlockedPaths.includes(location.pathname);
+            
+            if (isCurrentlyOnLockedPath && location.pathname.startsWith('/dashboard')) {
+                navigate('/dashboard/billing?first_time=true');
+            }
+        }
+    }, [isPlanless, location.pathname, profile.plan, navigate])
 
     const handleLogout = () => {
         localStorage.removeItem('access_token')
         localStorage.removeItem('user')
+        localStorage.removeItem('mock_user_plan')
+        localStorage.removeItem('mock_user_status')
         navigate('/login')
     }
 
@@ -64,6 +104,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
         { label: 'Overview', path: '/dashboard', icon: 'home' },
         { label: 'My Offers', path: '/dashboard/offers', icon: 'offers' },
         { label: 'Performance', path: '/dashboard/analytics', icon: 'analytics' },
+        { label: 'Plans & Billing', path: '/dashboard/billing', icon: 'billing' },
         { label: 'Agent Support', path: '/dashboard/support', icon: 'support' },
         { label: 'Settings', path: '/dashboard/settings', icon: 'settings' },
     ]
@@ -73,6 +114,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
         'Overview': 'Home',
         'My Offers': 'Offers',
         'Performance': 'Stats',
+        'Plans & Billing': 'Billing',
         'Agent Support': 'Support',
         'Settings': 'Settings',
     }
@@ -93,7 +135,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
             <aside className={`db-sidebar ${isSidebarOpen ? 'open' : ''}`}>
                 <div className="db-sidebar-header">
                     <Link to="/" className="db-logo" style={{ textDecoration: 'none', color: 'inherit' }}>
-                        MCOM<span>.LINKS</span>
+                        MCOMQ<span>.LINKS</span>
                     </Link>
                     {/* Close button inside sidebar for mobile */}
                     <button
@@ -106,19 +148,34 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
                 </div>
 
                 <nav className="db-nav">
-                    {navItems.map((item) => (
-                        <Link
-                            key={item.path}
-                            to={item.path}
-                            className={`db-nav-link ${location.pathname === item.path ? 'active' : ''}`}
-                            onClick={() => setIsSidebarOpen(false)}
-                        >
-                            <span className="db-nav-icon">
-                                <NavIcon type={item.icon} />
-                            </span>
-                            <span>{item.label}</span>
-                        </Link>
-                    ))}
+                    {navItems.map((item) => {
+                        const isMandatoryUnlocked = item.label === 'Plans & Billing' || item.label === 'Agent Support';
+                        const isLocked = isPlanless && !isMandatoryUnlocked;
+
+                        return (
+                            <Link
+                                key={item.path}
+                                to={isLocked ? '#' : item.path}
+                                className={`db-nav-link ${location.pathname === item.path ? 'active' : ''} ${isLocked ? 'locked' : ''}`}
+                                onClick={(e) => {
+                                    if (isLocked) {
+                                        e.preventDefault();
+                                        return;
+                                    }
+                                    setIsSidebarOpen(false);
+                                }}
+                                style={isLocked ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                            >
+                                <span className="db-nav-icon">
+                                    <NavIcon type={item.icon} />
+                                </span>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    {item.label}
+                                    {isLocked && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
+                                </span>
+                            </Link>
+                        );
+                    })}
                 </nav>
 
                 <div className="db-sidebar-footer">
@@ -133,7 +190,12 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
                         <span>Log Out</span>
                     </button>
 
-                    <Link to="/dashboard/settings" className="db-user-card" style={{ textDecoration: 'none', color: 'inherit' }} onClick={() => setIsSidebarOpen(false)}>
+                    <Link 
+                        to={isPlanless ? '#' : "/dashboard/settings"} 
+                        className={`db-user-card ${isPlanless ? 'locked' : ''}`} 
+                        style={{ textDecoration: 'none', color: 'inherit', opacity: isPlanless ? 0.7 : 1, cursor: isPlanless ? 'not-allowed' : 'pointer' }} 
+                        onClick={(e) => isPlanless ? e.preventDefault() : setIsSidebarOpen(false)}
+                    >
                         <img src={logoSource} alt={brandName} className="db-user-avatar" />
                         <div className="db-user-info">
                             <div className="db-user-name">{contactName}</div>
@@ -159,7 +221,12 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
                     <div className="db-header-actions">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>Status:</span>
-                            <span className="db-badge db-badge-approved">Active</span>
+                            <span className={`db-badge ${
+                                profile.subscriptionStatus === 'active' ? 'db-badge-approved' : 
+                                profile.subscriptionStatus === 'suspended' ? 'db-badge-expired' : 'db-badge-pending'
+                            }`}>
+                                {profile.subscriptionStatus ? profile.subscriptionStatus.charAt(0).toUpperCase() + profile.subscriptionStatus.slice(1) : 'Pending'}
+                            </span>
                         </div>
 
                         <button className="db-btn db-btn-ghost" style={{ padding: '0.5rem' }}>
@@ -176,18 +243,31 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
             {/* Mobile Bottom Tab Bar */}
             <nav className="db-bottom-nav">
                 <div className="db-bottom-nav-inner">
-                    {navItems.map((item) => (
-                        <Link
-                            key={item.path}
-                            to={item.path}
-                            className={`db-bottom-tab ${location.pathname === item.path ? 'active' : ''}`}
-                        >
-                            <span className="db-bottom-tab-icon">
-                                <NavIcon type={item.icon} size={18} />
-                            </span>
-                            {tabLabels[item.label] || item.label}
-                        </Link>
-                    ))}
+                    {navItems.map((item) => {
+                        const isMandatoryUnlocked = item.label === 'Plans & Billing' || item.label === 'Agent Support';
+                        const isLocked = isPlanless && !isMandatoryUnlocked;
+
+                        return (
+                            <Link
+                                key={item.path}
+                                to={isLocked ? '#' : item.path}
+                                className={`db-bottom-tab ${location.pathname === item.path ? 'active' : ''} ${isLocked ? 'locked' : ''}`}
+                                onClick={(e) => {
+                                    if (isLocked) {
+                                        e.preventDefault();
+                                        return;
+                                    }
+                                }}
+                                style={isLocked ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                            >
+                                <span className="db-bottom-tab-icon">
+                                    <NavIcon type={item.icon} size={18} />
+                                    {isLocked && <div style={{ position: 'absolute', top: -4, right: -4, background: '#64748b', color: 'white', borderRadius: '50%', width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8 }}><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>}
+                                </span>
+                                {tabLabels[item.label] || item.label}
+                            </Link>
+                        );
+                    })}
                 </div>
             </nav>
         </div>

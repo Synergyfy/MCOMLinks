@@ -24,6 +24,8 @@ export class SettingsService {
                 address: null,
                 primaryColor: '#2563eb',
                 secondaryColor: '#f8fafc',
+                plan: 'None',
+                subscriptionStatus: 'pending',
             } as BusinessSettingsDto;
         }
 

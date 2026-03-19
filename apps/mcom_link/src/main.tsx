@@ -26,6 +26,7 @@ import OffersPage from './pages/dashboard/OffersPage.tsx'
 import AnalyticsPage from './pages/dashboard/AnalyticsPage.tsx'
 import SupportPage from './pages/dashboard/SupportPage.tsx'
 import SettingsPage from './pages/dashboard/SettingsPage.tsx'
+import BillingPage from './pages/dashboard/BillingPage.tsx'
 
 // Agent Pages
 import AgentDashboard from './pages/agent/AgentDashboard.tsx'
@@ -44,6 +45,7 @@ import SeasonalCampaigns from './pages/admin/SeasonalCampaigns.tsx'
 import IdentityControl from './pages/admin/IdentityControl.tsx'
 import SystemHealth from './pages/admin/SystemHealth.tsx'
 import AdApprovalPage from './pages/admin/AdApproval.tsx'
+import PlanConfig from './pages/admin/PlanConfig.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -68,6 +70,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/dashboard/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
         <Route path="/dashboard/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
         <Route path="/dashboard/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+        <Route path="/dashboard/billing" element={<ProtectedRoute><BillingPage /></ProtectedRoute>} />
 
         {/* Agent Platform Routes */}
         <Route path="/agent" element={<ProtectedRoute><AgentDashboard /></ProtectedRoute>} />
@@ -86,6 +89,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/admin/identity" element={<ProtectedRoute><IdentityControl /></ProtectedRoute>} />
         <Route path="/admin/health" element={<ProtectedRoute><SystemHealth /></ProtectedRoute>} />
         <Route path="/admin/ad-approval" element={<ProtectedRoute><AdApprovalPage /></ProtectedRoute>} />
+        <Route path="/admin/plans" element={<ProtectedRoute><PlanConfig /></ProtectedRoute>} />
 
         {/* Global Fallback Route */}
         <Route path="*" element={<FallbackPage />} />

@@ -126,6 +126,89 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    position: relative;
+    overflow-x: hidden;
+}
+
+.sf-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-100%);
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border: 3px solid #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0a0a0a;
+    cursor: pointer;
+    z-index: 50;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sf-nav-btn:hover:not(:disabled) {
+    background: #ffffff;
+    transform: translateY(-100%) scale(1.1);
+    color: #2563eb;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.15);
+}
+
+.sf-nav-btn:active:not(:disabled) {
+    transform: translateY(-100%) scale(0.95);
+}
+
+.sf-nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.sf-nav-prev {
+    left: 0.25rem;
+}
+
+.sf-nav-next {
+    right: 0.25rem;
+}
+
+.sf-pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.4rem;
+    margin-top: -0.5rem;
+}
+
+.sf-dot {
+    width: 6px;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.sf-dot.active {
+    background: #2563eb;
+    width: 14px;
+    border-radius: 4px;
+}
+
+.sf-card-container {
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 1;
+    transform: translateX(0) rotate(0);
+}
+
+.animating-next {
+    transform: translateX(-100%) rotate(-5deg);
+    opacity: 0;
+}
+
+.animating-prev {
+    transform: translateX(100%) rotate(5deg);
+    opacity: 0;
 }
 
 /* ---------- OFFER CARD ---------- */
@@ -182,6 +265,37 @@
     font-weight: 700;
     letter-spacing: 0.5px;
     box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    z-index: 10;
+}
+
+.sf-exposure-badge {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 100px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    z-index: 10;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.sf-exposure-badge.national {
+    background: rgba(37, 99, 235, 0.9);
+    color: white;
+}
+
+.sf-exposure-badge.hyperlocal {
+    background: rgba(16, 185, 129, 0.9);
+    color: white;
+}
+
+.sf-exposure-badge.nearby {
+    background: rgba(245, 158, 11, 0.9);
+    color: white;
 }
 
 .sf-offer-content {
@@ -315,28 +429,45 @@
     gap: 0.5rem;
 }
 
+.sf-input-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
 .sf-quick-input {
-    flex: 1;
-    padding: 0.6rem 0.85rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
     border: 1px solid #cbd5e1;
-    border-radius: 0.65rem;
+    border-radius: 0.75rem;
     font-size: 0.85rem;
     outline: none;
     font-family: inherit;
+    background: #fff;
+    transition: all 0.2s ease;
 }
 
 .sf-quick-input:focus {
     border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
 }
 
 .sf-quick-btn {
-    padding: 0.6rem 1rem;
+    padding: 0.8rem 1.25rem;
     background: #2563eb;
     color: white;
     border: none;
-    border-radius: 0.65rem;
-    font-size: 0.8rem;
-    font-weight: 700;
+    border-radius: 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.sf-quick-btn:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
 }
 
 .sf-claimed-success {
@@ -353,6 +484,44 @@
 /* ---------- CTA BUTTON ---------- */
 .sf-cta-section {
     padding: 0;
+}
+
+.sf-cta-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.sf-quick-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+}
+
+@media (max-width: 480px) {
+    .sf-quick-inputs {
+        grid-template-columns: 1fr;
+    }
+}
+
+.sf-cta-input {
+    width: 100%;
+    padding: 0.85rem 1.1rem;
+    border: 1.5px solid rgba(0, 0, 0, 0.08);
+    border-radius: 0.85rem;
+    font-size: 0.85rem;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    background: #fdfdfd;
+    color: #0a0a0a;
+    outline: none;
+}
+
+.sf-cta-input:focus {
+    border-color: #2563eb;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .sf-cta-button {

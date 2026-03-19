@@ -113,7 +113,7 @@ export default function SeasonalCampaigns() {
                                         {formatDate(season.startDate)} – {formatDate(season.endDate)}
                                     </div>
                                     <p style={{ marginTop: '1rem', fontSize: '0.8rem', color: '#64748b' }}>
-                                        {active ? 'Offers are currently live in rotator' : 'Scheduled automation pending'}
+                                        {active ? 'Offers are currently live in network' : 'Scheduled automation pending'}
                                     </p>
                                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
                                         <button
@@ -143,7 +143,7 @@ export default function SeasonalCampaigns() {
                 <div className="db-card">
                     <h2 className="db-card-title" style={{ marginBottom: '1.5rem' }}>Priority Rule Engine</h2>
                     <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: '1.5', marginBottom: '2rem' }}>
-                        Define how priority "Boost" campaigns behave compared to sequential rotation.
+                        Define how priority "Boost" campaigns behave compared to primary sequence.
                     </p>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

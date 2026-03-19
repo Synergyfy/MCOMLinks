@@ -82,7 +82,7 @@ export default function DashboardHome() {
                     <div className="db-stat-label">Active Offers</div>
                     <div className="db-stat-value">{stats.activeOffers}</div>
                     <div className="db-stat-trend" style={{ color: '#64748b' }}>
-                        Live in Rotator
+                        Active in Network
                     </div>
                 </div>
             </div>
@@ -144,7 +144,7 @@ export default function DashboardHome() {
                     <div style={{ marginTop: '2rem', padding: '1rem', background: 'rgba(37, 99, 235, 0.04)', borderRadius: '0.75rem', border: '1px solid rgba(37, 99, 235, 0.1)' }}>
                         <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', fontWeight: 700 }}>Membership Status</h4>
                         <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', lineHeight: '1.4' }}>
-                            Your account is active. Upgrading to Premium gives you 3x more visibility in the local rotator.
+                            Your account is active. Upgrading to Premium gives you 3x more visibility in the display network.
                         </p>
                     </div>
                 </div>

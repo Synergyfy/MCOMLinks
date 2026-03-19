@@ -251,7 +251,7 @@ export default function LocationManager() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', gap: '1rem', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                         <div>
-                            <h2 className="db-card-title">Rotator Network</h2>
+                            <h2 className="db-card-title">Discovery Network</h2>
                             <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Management of high street clusters and local radius hubs.</p>
                         </div>
                         <div style={{ position: 'relative' }}>
@@ -303,7 +303,7 @@ export default function LocationManager() {
                                 📍 Hyperlocal
                             </button>
                         </div>
-                        <button className="db-btn db-btn-primary" onClick={() => setIsAddModalOpen(true)}>+ Add New Rotator</button>
+                        <button className="db-btn db-btn-primary" onClick={() => setIsAddModalOpen(true)}>+ Add New Hub</button>
                     </div>
                 </div>
 
@@ -549,7 +549,7 @@ export default function LocationManager() {
                 </div>
 
                 <div className="db-card" style={{ border: '2px dashed #e2e8f0', background: 'transparent' }}>
-                    <h2 className="db-card-title">Rotator Quick Override</h2>
+                    <h2 className="db-card-title">Network Quick Override</h2>
                     <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: '1.5', marginBottom: '1.5rem' }}>
                         Manually pause all high-street rotations for emergency maintenance.
                     </p>
@@ -571,7 +571,7 @@ export default function LocationManager() {
                             <div className="db-modal-content">
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                     <div className="db-form-group">
-                                        <label className="db-label">Rotator Type</label>
+                                        <label className="db-label">Hub Type</label>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                                             <button
                                                 type="button"
@@ -631,7 +631,7 @@ export default function LocationManager() {
                                     {newLocation.type === 'hyperlocal' && (
                                         <div style={{ padding: '0.75rem', background: '#eff6ff', borderRadius: '0.5rem', border: '1px solid #bfdbfe' }}>
                                             <p style={{ fontSize: '0.7rem', color: '#1e40af', margin: 0 }}>
-                                                <strong>Radius Rule:</strong> This rotator will automatically capture all business offers within a 5-mile radius of <strong>{newLocation.postcode || 'the center'}</strong>.
+                                                <strong>Radius Rule:</strong> This network hub will automatically capture all business offers within a 5-mile radius of <strong>{newLocation.postcode || 'the center'}</strong>.
                                             </p>
                                         </div>
                                     )}
@@ -639,7 +639,7 @@ export default function LocationManager() {
                             </div>
                             <div className="db-modal-footer">
                                 <button type="button" className="db-btn db-btn-ghost" onClick={() => setIsAddModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="db-btn db-btn-primary">Provision Rotator</button>
+                                <button type="submit" className="db-btn db-btn-primary">Provision Hub</button>
                             </div>
                         </form>
                     </div>
@@ -652,7 +652,7 @@ export default function LocationManager() {
                     <div className="db-modal" style={{ maxWidth: '900px', width: '90vw' }}>
                         <div className="db-modal-header">
                             <div>
-                                <h3 className="db-card-title">Rotator Engine: {selectedLocation.name}</h3>
+                                <h3 className="db-card-title">Delivery Engine: {selectedLocation.name}</h3>
                                 <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>Advanced sequence and delivery control</p>
                             </div>
                             <button onClick={() => setIsManageModalOpen(false)} className="db-btn-close">&times;</button>
@@ -691,6 +691,11 @@ export default function LocationManager() {
                                         <option value="link">Custom URL Redirect</option>
                                         <option value="expired">"Offer Expired" Notice</option>
                                     </select>
+                                    <p style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.5rem' }}>
+                                        {rotatorConfig.fallbackBehavior === 'default' && "Shows the global MCOMQ discovery page when the sequence ends."}
+                                        {rotatorConfig.fallbackBehavior === 'link' && "Sends the user directly to a custom URL if no active offers are found."}
+                                        {rotatorConfig.fallbackBehavior === 'expired' && "Strictly informs the user that the offer they scanned is no longer active."}
+                                    </p>
                                 </div>
 
                                 {rotatorConfig.fallbackBehavior === 'link' && (
@@ -709,12 +714,12 @@ export default function LocationManager() {
                                 <div style={{ marginTop: 'auto', background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem' }}>
                                     <h4 style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Engine Stats</h4>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                                        <span>Active Offers:</span>
-                                        <span style={{ fontWeight: 700 }}>{allOffers.filter(o => o.isActive).length}</span>
+                                        <span>Rotator Assets:</span>
+                                        <span style={{ fontWeight: 700 }}>{rotatorConfig.offerSequence.length}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-                                        <span>Total Capacity:</span>
-                                        <span style={{ fontWeight: 700 }}>Inf.</span>
+                                        <span>Active Status:</span>
+                                        <span style={{ fontWeight: 700, color: '#10b981' }}>HEALTHY</span>
                                     </div>
                                 </div>
                             </div>

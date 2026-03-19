@@ -103,6 +103,18 @@
     color: var(--auth-text);
 }
 
+.auth-label-required::after {
+    content: " *";
+    color: #ef4444;
+}
+
+.auth-label-optional::after {
+    content: " (optional)";
+    color: var(--auth-text-muted);
+    font-weight: 400;
+    font-size: 0.75rem;
+}
+
 .auth-input {
     padding: 0.875rem 1rem;
     border-radius: 0.75rem;

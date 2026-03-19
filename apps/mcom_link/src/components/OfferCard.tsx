@@ -9,8 +9,6 @@ interface OfferCardProps {
 
 export default function OfferCard({ offer }: Readonly<OfferCardProps>) {
     const { locationId } = useParams<{ locationId: string }>()
-    const [quickClaimEmail, setQuickClaimEmail] = useState('')
-    const [isClaimed, setIsClaimed] = useState(false)
     const [secondsViewed, setSecondsViewed] = useState(0)
 
     // Track engagement time (STEP 8 - Deep Insights)
@@ -28,21 +26,12 @@ export default function OfferCard({ offer }: Readonly<OfferCardProps>) {
         }
     }, [offer.id, locationId, secondsViewed])
 
-    const handleIntent = (type: 'directions' | 'save_to_phone' | 'call_click' | 'whatsapp_click') => {
+    const handleIntent = (type: 'directions' | 'call_click') => {
         api.get(`/r/${locationId || 'unknown'}/track/${offer.id}/${type}`).catch(() => { })
 
-        if (type === 'save_to_phone') {
-            alert('🎟️ Lead Captured! Offer saved to your browser wallet.')
-        } else if (type === 'directions') {
-            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(offer.businessName)}`, '_blank')
-        }
-    }
-
-    const handleQuickClaim = (e: React.FormEvent) => {
-        e.preventDefault()
-        if (quickClaimEmail) {
-            api.get(`/r/${locationId || 'unknown'}/track/${offer.id}/quick_claim?email=${encodeURIComponent(quickClaimEmail)}`).catch(() => { })
-            setIsClaimed(true)
+        if (type === 'directions') {
+            const query = offer.googleMapsLocation || offer.businessName;
+            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`, '_blank')
         }
     }
 
@@ -87,44 +76,11 @@ export default function OfferCard({ offer }: Readonly<OfferCardProps>) {
                 <p className="sf-offer-description">{offer.description}</p>
 
                 {/* --- Intent Trigger Grid (STEP 2) --- */}
-                <div className="sf-intent-grid">
-                    <button className="sf-intent-btn" onClick={() => handleIntent('save_to_phone')}>
-                        <span className="sf-intent-icon">🎟️</span>
-                        <span>Save to Phone</span>
-                    </button>
-                    <button className="sf-intent-btn" onClick={() => handleIntent('directions')}>
+                <div className="sf-intent-grid" style={{ display: 'flex', justifyContent: 'center' }}>
+                    <button className="sf-intent-btn" onClick={() => handleIntent('directions')} style={{ width: '100%', maxWidth: '280px', justifyContent: 'center', background: '#f8fafc' }}>
                         <span className="sf-intent-icon">📍</span>
-                        <span>Getting Here</span>
+                        <span style={{ fontWeight: 800 }}>Getting Here</span>
                     </button>
-                    <button className="sf-intent-btn" onClick={() => handleIntent('whatsapp_click')}>
-                        <span className="sf-intent-icon">💬</span>
-                        <span>WhatsApp</span>
-                    </button>
-                </div>
-
-                {/* --- Incentive Bridge (STEP 3) --- */}
-                <div className="sf-incentive-bridge">
-                    {!isClaimed ? (
-                        <form onSubmit={handleQuickClaim} className="sf-quick-claim-form">
-                            <p className="sf-incentive-text">Send me a reminder before this expires! ⚡</p>
-                            <div className="sf-input-group">
-                                <input
-                                    type="email"
-                                    placeholder="Enter your email..."
-                                    className="sf-quick-input"
-                                    value={quickClaimEmail}
-                                    onChange={(e) => setQuickClaimEmail(e.target.value)}
-                                    required
-                                />
-                                <button type="submit" className="sf-quick-btn">Remind Me</button>
-                            </div>
-                        </form>
-                    ) : (
-                        <div className="sf-claimed-success">
-                            <span className="sf-claimed-icon">✅</span>
-                            <span>Reminder Set! We'll email you soon.</span>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

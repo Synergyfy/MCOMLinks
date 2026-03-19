@@ -20,8 +20,8 @@ export default function ClaimPage() {
     const [loading, setLoading] = useState(true)
     const [formData, setFormData] = useState({
         name: '',
-        email: '',
-        phone: '',
+        email: searchParams.get('email') || '',
+        phone: searchParams.get('phone') || '',
     })
     const [errors, setErrors] = useState<Record<string, string>>({})
     const [consent, setConsent] = useState(false)
@@ -59,7 +59,7 @@ export default function ClaimPage() {
         return <FallbackPage />
     }
 
-    const claimFields = offer.claimFields || [
+    const claimFields = (offer as any).claimFields || [
         { name: 'name', label: 'Your Name', type: 'text', required: true, placeholder: 'Enter your full name' },
         { name: 'email', label: 'Email Address', type: 'email', required: true, placeholder: 'your@email.com' },
         { name: 'phone', label: 'Phone Number', type: 'tel', required: false, placeholder: '+44 7XXX XXX XXX' },
@@ -68,7 +68,7 @@ export default function ClaimPage() {
     const validate = (): boolean => {
         const newErrors: Record<string, string> = {}
 
-        claimFields.forEach((field) => {
+        claimFields.forEach((field: any) => {
             const value = formData[field.name as keyof typeof formData] || ''
             if (field.required && !value.trim()) {
                 newErrors[field.name] = `${field.label} is required`
@@ -95,7 +95,7 @@ export default function ClaimPage() {
 
         try {
             // Log form submission (STEP 8)
-            await api.get(`/r/${locationId}/track/${offer.id}/claim?name=${encodeURIComponent(formData.name)}&email=${encodeURIComponent(formData.email)}`)
+            await api.get(`/r/${locationId}/track/${offer.id}/claim?name=${encodeURIComponent(formData.name)}&email=${encodeURIComponent(formData.email)}&phone=${encodeURIComponent(formData.phone)}`)
 
             // Navigate to confirmation (STEP 7)
             navigate(`/confirmed/${offer.id}?location=${locationId}`)
@@ -145,7 +145,7 @@ export default function ClaimPage() {
                         <h3 className="sf-form-title">Claim Your Offer</h3>
                         <p className="sf-form-subtitle">Fill in your details below to claim this exclusive offer.</p>
 
-                        {claimFields.map((field) => (
+                        {claimFields.map((field: any) => (
                             <div className="sf-form-group" key={field.name}>
                                 <label className="sf-form-label" htmlFor={`field-${field.name}`}>
                                     {field.label}

@@ -464,6 +464,28 @@
     color: #94a3b8;
 }
 
+.db-info-tooltip {
+    cursor: help;
+    color: #2563eb;
+    background: rgba(37, 99, 235, 0.08);
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 0.65rem;
+    font-weight: 800;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.db-info-tooltip:hover {
+    background: #2563eb;
+    color: #fff;
+    transform: scale(1.1);
+}
+
 /* ---------- ANIMATIONS ---------- */
 @keyframes dbFadeInUp {
     from {
