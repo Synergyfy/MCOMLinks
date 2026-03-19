@@ -21,8 +21,12 @@ export interface Offer {
     startDate: string // ISO date string
     endDate: string   // ISO date string
     status: OfferStatus
-    visibility: 'national' | 'hyperlocal'
+    visibility: 'national' | 'hyperlocal' | 'nearby'
+    exposureType: 'national' | 'hyperlocal' | 'nearby'
+    rotatorWeight?: number // 0-100 percentage
+    targetRadius?: number // in km, for nearby
     targetPostcode?: string
+    billingStatus?: 'active' | 'suspended' | 'pending'
     performance: {
         scans: number
         claims: number

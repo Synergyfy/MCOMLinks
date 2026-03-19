@@ -1,182 +1,105 @@
-import { mockOffers, fallbackOffer, type Offer } from './offers'
-import { getRotatorConfig, incrementClickCount, getClickCount } from './rotatorStore'
+import type { Offer } from '../types';
+import { mockOffers } from './offers';
+import { fallbackOffer } from '../constants/fallbackOffer';
 
-// Persistent rotation tracking is now handled via localStorage in getPointer/updatePointer helper functions
-const scanHistory: Map<string, { count: number; lastScan: number }> = new Map()
-const MAX_SCANS_PER_MINUTE = 50
+// Simple mapping for location data enrichment in the frontend mock
+export const mockLocations: Record<string, { name: string, postcode: string, campaignName: string }> = {
+    'loc-peckham-01': { name: 'Peckham High Street', postcode: 'SE15', campaignName: 'MCOM Spring Special' },
+    'loc-brixton-01': { name: 'Brixton Market', postcode: 'SW9', campaignName: 'Summer Vibes Brixton' },
+    'loc-stratford-01': { name: 'Stratford Centre', postcode: 'E15', campaignName: 'Corporate Default' },
+};
 
-function getPointer(locationId: string): number {
-    const key = `mcom_ptr_${locationId}`
-    const stored = localStorage.getItem(key)
-    return stored ? Number.parseInt(stored, 10) : 0
-}
+/**
+ * Rotator Engine Simulation
+ * Implements Three-Layer exposure logic:
+ * 1. Hyper-local (Primary - Highest Weight)
+ * 2. Nearby (B2B Expansion - Radius/Radius Based)
+ * 3. National (Fallback - Lower Weight/Default)
+ */
+export async function getNextOffer(locationId: string): Promise<{ offer: Offer, location: any }> {
+    const location = mockLocations[locationId] || { name: 'Unknown Location', postcode: 'GEN', campaignName: 'Global Rotation' };
+    const myPostcode = location.postcode;
 
-function updatePointer(locationId: string, current: number, total: number): void {
-    const key = `mcom_ptr_${locationId}`
-    const next = (current + 1) % total
-    localStorage.setItem(key, next.toString())
-}
+    // 0. Filter Active & Paid (Billing Integration Rule: No Payment = No Visibility)
+    const activeAndPaid = mockOffers.filter(o => o.isActive && o.status === 'approved' && o.billingStatus !== 'suspended');
 
-function getCurrentSeason(): string {
-    const month = new Date().getMonth() + 1
-    if (month >= 3 && month <= 5) return 'spring'
-    if (month >= 6 && month <= 8) return 'summer'
-    if (month >= 9 && month <= 11) return 'autumn'
-    return 'winter'
-}
+    // 1. Filter Hyper-local offers (Direct Postcode match)
+    const hyperlocalOffers = activeAndPaid.filter(o => 
+        o.exposureType === 'hyperlocal' && 
+        o.targetPostcode === myPostcode
+    );
 
-function isOfferValid(offer: Offer): boolean {
-    if (!offer.isActive) return false
-    const now = new Date()
-    const start = new Date(offer.startDate)
-    const end = new Date(offer.endDate)
-    if (now < start || now > end) return false
-    if (offer.season !== 'all') {
-        const currentSeason = getCurrentSeason()
-        if (offer.season !== currentSeason) return false
+    // 2. Filter Nearby offers (Simulated Postcode Proximity)
+    const nearbyOffers = activeAndPaid.filter(o => 
+        o.exposureType === 'nearby' && 
+        isNearby(o.targetPostcode || '', myPostcode, o.targetRadius || 5)
+    );
+
+    // 3. Filter National offers (Always available everywhere)
+    const nationalOffers = activeAndPaid.filter(o => 
+        o.exposureType === 'national'
+    );
+
+    // PRIORITY SELECTION WITH WEIGHTING
+    let candidates: Offer[] = [];
+    
+    if (hyperlocalOffers.length > 0) {
+        candidates = hyperlocalOffers;
+    } else if (nearbyOffers.length > 0) {
+        candidates = nearbyOffers;
+    } else {
+        candidates = nationalOffers.length > 0 ? nationalOffers : [fallbackOffer];
     }
-    return true
-}
 
-function isRateLimited(sessionId: string): boolean {
-    const now = Date.now()
-    const history = scanHistory.get(sessionId)
-    if (!history) {
-        scanHistory.set(sessionId, { count: 1, lastScan: now })
-        return false
-    }
-    if (now - history.lastScan > 60000) {
-        scanHistory.set(sessionId, { count: 1, lastScan: now })
-        return false
-    }
-    history.count++
-    history.lastScan = now
-    return history.count > MAX_SCANS_PER_MINUTE
+    // REAL-TIME WEIGHTING: Pick based on probability
+    const selectedOffer = pickWeightedOffer(candidates);
+
+    return {
+        offer: selectedOffer,
+        location
+    };
 }
 
 /**
- * Core Engine: Fetches the next offer based on location config and rotation logic.
+ * Weighted Probability Selector
+ * P(Offer) = Weight / TotalWeight
  */
-export function getNextOffer(locationId: string, sessionId: string = 'default'): {
-    offer: Offer
-    isFallback: boolean
-    isRateLimited: boolean
-} {
-    // 1. Anti-farming
-    if (isRateLimited(sessionId)) {
-        return { offer: fallbackOffer, isFallback: true, isRateLimited: true }
-    }
+function pickWeightedOffer(offers: Offer[]): Offer {
+    if (offers.length === 0) return fallbackOffer;
+    if (offers.length === 1) return offers[0];
 
-    // 2. Load Config & Valid Offers
-    const config = getRotatorConfig(locationId)
-    const validOffers = mockOffers.filter(isOfferValid)
+    const totalWeight = offers.reduce((sum, offer) => sum + (offer.rotatorWeight || 100), 0);
+    let random = Math.random() * totalWeight;
 
-    if (validOffers.length === 0) {
-        return { offer: fallbackOffer, isFallback: true, isRateLimited: false }
-    }
-
-    // 3. Sort/Order based on config
-    let sortedOffers: Offer[] = []
-
-    if (config.offerSequence && config.offerSequence.length > 0) {
-        // Use custom admin sequence
-        sortedOffers = config.offerSequence
-            .map(id => validOffers.find(o => o.id === id))
-            .filter((o): o is Offer => !!o)
-
-        // Append any valid offers NOT in the sequence to the end
-        const unsorted = validOffers.filter(vo => !config.offerSequence.includes(vo.id))
-        sortedOffers = [...sortedOffers, ...unsorted]
-    } else {
-        // Default
-        sortedOffers = [...validOffers]
-    }
-
-    // Always ensure Premium (Hyperlocal) comes first regardless of sequence position
-    // unless the admin explicitly wants a specific order? 
-    // The user said "premium which comes first", so we enforce it.
-    sortedOffers.sort((a, b) => {
-        if (a.isPremium === b.isPremium) return 0
-        return a.isPremium ? -1 : 1
-    })
-
-    if (sortedOffers.length === 0) return { offer: fallbackOffer, isFallback: true, isRateLimited: false }
-
-    let selectedOffer: Offer | null = null
-
-    // 4. Apply Rotation Logic
-    switch (config.type) {
-        case 'random': {
-            // Weighted random selection
-            const totalWeight = sortedOffers.reduce((sum, o) => sum + (config.weights[o.id] || 1), 0)
-            let random = Math.random() * totalWeight
-            for (const offer of sortedOffers) {
-                const weight = config.weights[offer.id] || 1
-                if (random < weight) {
-                    selectedOffer = offer
-                    break
-                }
-                random -= weight
-            }
-            break
+    for (const offer of offers) {
+        const weight = offer.rotatorWeight || 100;
+        if (random < weight) {
+            return offer;
         }
-
-        case 'scarcity': {
-            // First available in list that hasn't hit limit
-            selectedOffer = sortedOffers.find(o => {
-                const limit = config.scarcityLimits[o.id] || Infinity
-                const clicks = getClickCount(o.id, locationId)
-                return clicks < limit
-            }) || null
-            break
-        }
-
-        case 'split': {
-            // Build the expanded sequence based on appearances/weights
-            // Each offer appears N times in the sequence
-            const expandedSequence: Offer[] = []
-            for (const offer of sortedOffers) {
-                const count = config.weights[offer.id] || 1
-                for (let i = 0; i < count; i++) {
-                    expandedSequence.push(offer)
-                }
-            }
-
-            if (expandedSequence.length === 0) break
-
-            const currentPointer = getPointer(locationId)
-            selectedOffer = expandedSequence[currentPointer % expandedSequence.length]
-            updatePointer(locationId, currentPointer, expandedSequence.length)
-            break
-        }
-
-        case 'sequential':
-        default: {
-            // Pointer based rotation
-            const currentPointer = getPointer(locationId)
-            selectedOffer = sortedOffers[currentPointer % sortedOffers.length]
-            updatePointer(locationId, currentPointer, sortedOffers.length)
-            break
-        }
+        random -= weight;
     }
 
-    // 5. Final Result & Fallback
-    if (!selectedOffer) {
-        return { offer: fallbackOffer, isFallback: true, isRateLimited: false }
-    }
-
-    // Tracker click for scarcity and stats
-    incrementClickCount(selectedOffer.id, locationId)
-
-    return { offer: selectedOffer, isFallback: false, isRateLimited: false }
+    return offers[0];
 }
 
-export function getOfferById(offerId: string): Offer | undefined {
-    return mockOffers.find((o) => o.id === offerId) || (offerId === fallbackOffer.id ? fallbackOffer : undefined)
-}
+/**
+ * Simulated Postcode Proximity API
+ * In a real system, this calls a Geo-spatial DB or distance API.
+ * For now, we simulate by checking prefix similarity or radius.
+ */
+function isNearby(targetPostcode: string, currentPostcode: string, radiusKm: number): boolean {
+    if (targetPostcode === currentPostcode) return true;
+    
+    // Heuristic: Same area (e.g. SE15 vs SE5) is "Nearby"
+    const targetArea = targetPostcode.replace(/[0-9]/g, '').slice(0, 2);
+    const currentArea = currentPostcode.replace(/[0-9]/g, '').slice(0, 2);
+    
+    // If they share the same area code (e.g. both SE), we check the number
+    if (targetArea === currentArea) {
+        const targetNum = parseInt(targetPostcode.match(/\d+/)?.[0] || '0');
+        const currentNum = parseInt(currentPostcode.match(/\d+/)?.[0] || '0');
+        return Math.abs(targetNum - currentNum) <= (radiusKm / 2); // Very rough proxy
+    }
 
-export function resetRotation(locationId: string): void {
-    const key = `mcom_ptr_${locationId}`
-    localStorage.removeItem(key)
-    // Also clear config if needed, but usually we just want to reset pointer
+    return false;
 }

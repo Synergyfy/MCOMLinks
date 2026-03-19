@@ -86,8 +86,10 @@ export default function OffersPage() {
         businessName: '',
         isPremium: false,
         season: 'all',
-        visibility: 'national',
+        visibility: 'hyperlocal',
+        exposureType: 'hyperlocal' as 'national' | 'hyperlocal' | 'nearby',
         targetPostcode: '',
+        targetRadius: 5,
         redemptionInstructions: ''
     })
 
@@ -110,8 +112,9 @@ export default function OffersPage() {
                 ctaLabel: newOffer.ctaLabel,
                 ctaType: newOffer.ctaType,
                 redemptionCode: newOffer.ctaType === 'redeem' ? newOffer.redemptionCode : undefined,
-                visibility: newOffer.visibility,
+                exposureType: newOffer.exposureType,
                 targetPostcode: newOffer.targetPostcode,
+                targetRadius: newOffer.targetRadius,
                 isPremium: newOffer.isPremium,
                 status: 'submitted',
             };
@@ -125,16 +128,16 @@ export default function OffersPage() {
             // For hyper-local, send a post and then show the alert if success
             await api.post('/dashboard/offers', payload)
 
-            if (newOffer.visibility === 'hyperlocal') {
-                const msg = `Hyperlocal Offer Detected!\n\nPostcode: ${newOffer.targetPostcode}\nRadius: 5 Miles\n\nSystem is checking for existing hubs within 5 miles... None found near ${newOffer.targetPostcode}.\n\n✅ AUTO-PROVISIONING: A new Radius Hub has been created for your business location!`
+            if (newOffer.exposureType === 'hyperlocal' || newOffer.exposureType === 'nearby') {
+                const msg = `${newOffer.exposureType === 'hyperlocal' ? 'Hyperlocal' : 'Nearby Expansion'} Offer Detected!\n\nPostcode: ${newOffer.targetPostcode}\nRadius: ${newOffer.targetRadius || 5}km\n\nSystem is checking for existing hubs... \n\n✅ AUTO-PROVISIONING: A new Radius Hub has been targeted for your business location!`
                 alert(msg)
             } else {
-                alert("Offer submitted for approval! Our team will review it within 24 hours.")
+                alert("Global Campaign submitted! Our team will review and approve it within 24 hours.")
             }
 
             setShowModal(false)
             setUploadMode('url')
-            setNewOffer({ headline: '', description: '', ctaType: 'claim', ctaLabel: 'Claim This Offer', redirectUrl: '', redemptionCode: '', mediaType: 'image', imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop', videoUrl: '', startDate: new Date().toISOString().split('T')[0], endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], businessName: '', isPremium: false, season: 'all', visibility: 'national', targetPostcode: '', redemptionInstructions: '' })
+            setNewOffer({ headline: '', description: '', ctaType: 'claim', ctaLabel: 'Claim This Offer', redirectUrl: '', redemptionCode: '', mediaType: 'image', imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop', videoUrl: '', startDate: new Date().toISOString().split('T')[0], endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], businessName: '', isPremium: false, season: 'all', exposureType: 'hyperlocal', targetPostcode: '', targetRadius: 5, redemptionInstructions: '' })
 
             // Refresh list
             fetchOffers()
@@ -221,7 +224,19 @@ export default function OffersPage() {
                                         </span>
                                     </td>
                                     <td>
-                                        <div style={{ fontSize: '0.85rem', fontWeight: 600, textTransform: 'capitalize' }}>{offer.ctaType}</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                            {offer.exposureType === 'hyperlocal' ? (
+                                                <span style={{ fontSize: '0.8rem' }}>📍</span>
+                                            ) : offer.exposureType === 'nearby' ? (
+                                                <span style={{ fontSize: '0.8rem' }}>🚀</span>
+                                            ) : (
+                                                <span style={{ fontSize: '0.8rem' }}>🌐</span>
+                                            )}
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>
+                                                {offer.exposureType || 'LOCAL'}
+                                            </span>
+                                        </div>
+                                        <div style={{ fontSize: '0.85rem', fontWeight: 600, textTransform: 'capitalize', marginTop: '0.2rem' }}>{offer.ctaType}</div>
                                     </td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '1rem' }}>
@@ -509,6 +524,34 @@ export default function OffersPage() {
                                             <small className="db-help">Leads will be forwarded to this contact.</small>
                                         </div>
                                     )}
+
+                                    <div style={{ padding: '1.25rem', background: '#f8fafc', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
+                                        <label className="db-label" style={{ marginBottom: '0.75rem', display: 'block' }}>Campaign Exposure Layer</label>
+                                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                                            <button type="button" onClick={() => setNewOffer({ ...newOffer, exposureType: 'national' })} className={`db-btn ${newOffer.exposureType === 'national' ? 'db-btn-primary' : 'db-btn-ghost'}`} style={{ flex: 1, padding: '0.5rem', fontSize: '0.7rem' }}>🌐 National</button>
+                                            <button type="button" onClick={() => setNewOffer({ ...newOffer, exposureType: 'hyperlocal' })} className={`db-btn ${newOffer.exposureType === 'hyperlocal' ? 'db-btn-primary' : 'db-btn-ghost'}`} style={{ flex: 1, padding: '0.5rem', fontSize: '0.7rem' }}>📍 Local</button>
+                                            <button type="button" onClick={() => setNewOffer({ ...newOffer, exposureType: 'nearby' })} className={`db-btn ${newOffer.exposureType === 'nearby' ? 'db-btn-primary' : 'db-btn-ghost'}`} style={{ flex: 1, padding: '0.5rem', fontSize: '0.7rem' }}>🚀 Nearby</button>
+                                        </div>
+
+                                        {newOffer.exposureType === 'national' && (
+                                            <p style={{ fontSize: '0.65rem', color: '#64748b', margin: '0 0 1rem' }}>Broad platform-wide visibility. Great for national brands or digital services.</p>
+                                        )}
+
+                                        {newOffer.exposureType !== 'national' && (
+                                            <div style={{ marginBottom: '1rem' }}>
+                                                <label className="db-label">Target {newOffer.exposureType === 'hyperlocal' ? 'Postcode' : 'Expansion Center Postcode'}</label>
+                                                <input type="text" className="db-input" placeholder="e.g. W1F 0AA" value={newOffer.targetPostcode} onChange={e => setNewOffer({ ...newOffer, targetPostcode: e.target.value.toUpperCase() })} required />
+                                            </div>
+                                        )}
+
+                                        {newOffer.exposureType === 'nearby' && (
+                                            <div style={{ marginBottom: '1rem' }}>
+                                                <label className="db-label">Expansion Radius (km)</label>
+                                                <input type="number" className="db-input" value={newOffer.targetRadius} onChange={e => setNewOffer({ ...newOffer, targetRadius: parseInt(e.target.value) || 0 })} />
+                                                <small className="db-help">Targets hubs within this distance of your center point.</small>
+                                            </div>
+                                        )}
+                                    </div>
 
                                     <div className="db-grid-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <div className="db-form-group">

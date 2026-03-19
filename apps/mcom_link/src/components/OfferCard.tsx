@@ -67,6 +67,10 @@ export default function OfferCard({ offer }: Readonly<OfferCardProps>) {
                         loading="eager"
                     />
                 )}
+                <div className={`sf-exposure-badge ${offer.exposureType}`}>
+                    {offer.exposureType === 'hyperlocal' ? '📍 Local Offer' : 
+                     offer.exposureType === 'nearby' ? '🚀 Nearby' : '🌐 National'}
+                </div>
                 {offer.isPremium && (
                     <div className="sf-premium-badge">⭐ Featured</div>
                 )}

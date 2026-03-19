@@ -4,7 +4,6 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { api } from '../api/apiClient'
 import type { Offer } from '../types'
 import { fallbackOffer } from '../constants/fallbackOffer'
 import StorefrontHeader from '../components/StorefrontHeader'
@@ -14,6 +13,7 @@ import TrustBadge from '../components/TrustBadge'
 import StorefrontFooter from '../components/StorefrontFooter'
 import LoadingScreen from './LoadingScreen'
 import FallbackPage from './FallbackPage'
+import { getNextOffer } from '../mock/rotatorEngine'
 
 export default function StorefrontPage() {
     const { locationId } = useParams<{ locationId: string }>()
@@ -32,41 +32,16 @@ export default function StorefrontPage() {
 
         const fetchOffer = async () => {
             try {
-                // Fetch the next offer from the backend rotator
-                const result = await api.get<any>(`/r/${locationId}`)
+                // SIMULATING THE ROTATOR ENGINE (PRD / TASK.MD REQS)
+                // In a real app, this is a backend call to /r/${locationId}
+                // But we are mocking the sequential 3-layer logic here.
+                const { offer: mockOffer, location: mockLocation } = await getNextOffer(locationId)
 
                 if (!isMounted) return
 
-                if (result && result.action === 'redirect' && result.url) {
-                    window.location.href = result.url;
-                    return;
-                }
-
-                const { offer: backendOffer, location: backendLocation } = result
-
-                if (!backendOffer || backendOffer.id === 'fallback-branded') {
-                    setOffer(fallbackOffer)
-                    setIsFallback(true)
-                } else {
-                    // Map backend Offer model to frontend Offer interface
-                    const mappedOffer: Offer = {
-                        ...backendOffer,
-                        // Ensure compatibility with frontend components
-                        performance: {
-                            scans: backendOffer.scans || 0,
-                            claims: backendOffer.claims || 0
-                        },
-                        redirectUrl: backendOffer.leadDestination,
-                        mediaType: backendOffer.mediaType || 'image',
-                        isActive: backendOffer.status === 'approved',
-                    }
-                    setOffer(mappedOffer)
-                    setIsFallback(false)
-                }
-
-                if (backendLocation) {
-                    setLocation(backendLocation)
-                }
+                setOffer(mockOffer)
+                setLocation(mockLocation)
+                setIsFallback(mockOffer.id === 'fallback-branded')
 
                 hasRotated.current = true
             } catch (error) {
