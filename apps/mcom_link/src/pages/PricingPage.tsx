@@ -353,9 +353,6 @@ const PricingPage: React.FC = () => {
                 <Link to="/signup" className="btn-premium" style={{ padding: '1.1rem 3rem', fontSize: '1.05rem', textDecoration: 'none' }}>
                     Start Now <ArrowRight />
                 </Link>
-                <a href="#pricing" className="btn-ghost" style={{ padding: '1.1rem 3rem', fontSize: '1.05rem', textDecoration: 'none' }}>
-                    Compare Plans
-                </a>
             </div>
         </section>
 
