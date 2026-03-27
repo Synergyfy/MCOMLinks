@@ -28,7 +28,6 @@ const PricingPage: React.FC = () => {
     {
       name: "BASIC",
       type: "90-Day Access",
-      mandatory: true,
       price: "£90",
       period: "/ 90 days",
       tagline: "Start showing your business on MCOMQLinks",
@@ -155,7 +154,7 @@ const PricingPage: React.FC = () => {
                     {plan.popular && <div className="popular-badge">Highly Recommended</div>}
                     <div className="card-header">
                         <span className="plan-name">{plan.name}</span>
-                        <span className="plan-type">{plan.type} {plan.mandatory && <span className="mandatory-tag">(MANDATORY)</span>}</span>
+                        <span className="plan-type">{plan.type}</span>
                         <div className="plan-price">
                             <span className="amount">{plan.price}</span>
                             <span className="period">{plan.period}</span>
@@ -354,9 +353,6 @@ const PricingPage: React.FC = () => {
                 <Link to="/signup" className="btn-premium" style={{ padding: '1.1rem 3rem', fontSize: '1.05rem', textDecoration: 'none' }}>
                     Start Now <ArrowRight />
                 </Link>
-                <a href="#pricing" className="btn-ghost" style={{ padding: '1.1rem 3rem', fontSize: '1.05rem', textDecoration: 'none' }}>
-                    Compare Plans
-                </a>
             </div>
         </section>
 

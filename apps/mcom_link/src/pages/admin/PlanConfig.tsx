@@ -14,7 +14,6 @@ interface PlanSettings {
     period: string;
     tagline: string;
     color: string;
-    mandatory: boolean;
     popular: boolean;
     included: string[];
     limitations: string[];
@@ -41,7 +40,6 @@ const initialPlans: PlanSettings[] = [
         id: 'basic',
         name: 'BASIC',
         type: '90-Day Access',
-        mandatory: true,
         popular: false,
         price: '90',
         period: '90 days',
@@ -82,7 +80,6 @@ const initialPlans: PlanSettings[] = [
         id: 'pro',
         name: 'PRO',
         type: 'Growth Mode',
-        mandatory: false,
         popular: false,
         price: '450',
         period: '90 days',
@@ -118,7 +115,6 @@ const initialPlans: PlanSettings[] = [
         id: 'pro-plus',
         name: 'PRO+',
         type: 'Full Visibility & Expo Access',
-        mandatory: false,
         popular: true,
         price: '1100',
         period: '90 days',
@@ -307,10 +303,7 @@ export default function PlanConfig() {
                                     Popular?
                                     <input type="checkbox" checked={selectedPlan.popular} onChange={e => updatePlan({ popular: e.target.checked })} />
                                 </label>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 700, padding: '0.5rem 1rem', background: '#f8fafc', borderRadius: '100px', border: '1px solid #e2e8f0' }}>
-                                    Mandatory?
-                                    <input type="checkbox" checked={selectedPlan.mandatory} onChange={e => updatePlan({ mandatory: e.target.checked })} />
-                                </label>
+
                             </div>
                         </div>
 
