@@ -11,6 +11,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
     const location = useLocation()
     const navigate = useNavigate()
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+    const [isCollapsed, setIsCollapsed] = useState(false)
 
     const handleLogout = () => {
         localStorage.removeItem('access_token')
@@ -27,6 +28,8 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
         { label: 'Global Identity', path: '/admin/identity', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor" /><circle cx="17.5" cy="10.5" r=".5" fill="currentColor" /><circle cx="8.5" cy="7.5" r=".5" fill="currentColor" /><circle cx="6.5" cy="12.5" r=".5" fill="currentColor" /><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" /></svg> },
         { label: 'System Health', path: '/admin/health', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg> },
         { label: 'Ad Approvals', path: '/admin/ad-approval', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" /><path d="m9 12 2 2 4-4" /></svg> },
+        { label: 'Promo Control', path: '/admin/promo', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H2V15H6L11 19V5Z" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /></svg> },
+        { label: 'Homepage CMS', path: '/admin/home-cms', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v18" /><path d="M20 8l-8 5-8-5" /><path d="M20 16l-8 5-8-5" /></svg> },
         { label: 'Plan Configuration', path: '/admin/plans', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.91 8.84 8.56 2.23a1.93 1.93 0 0 0-1.81 0L2.13 4.54a1.96 1.96 0 0 0 0 3.42l1.96 1.05a1.97 1.97 0 0 0 1.81 0l12.35-6.61z" /><path d="M8.83 17.66b-4.1-2.19a2 2 0 0 0-1.81 0l-4.1 2.19a2 2 0 0 0 0 3.42l4.1 2.19a2 2 0 0 0 1.81 0l4.1-2.19a2 2 0 0 0 0-3.42z" /><path d="M22 12a10 10 0 1 1-10-10h1.22" /></svg> }
     ]
     const isActive = (path: string) => location.pathname === path
@@ -40,10 +43,10 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
             />
 
             {/* Sidebar - Step 16 */}
-            <aside className={`db-sidebar ${isSidebarOpen ? 'open' : ''}`} style={{ backgroundColor: '#2563eb', borderRight: 'none' }}>
-                <div className="db-logo-section" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div className="db-logo-placeholder" style={{ background: '#ffffff', color: '#2563eb', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900 }}>M</div>
-                    <h1 className="db-logo-text" style={{ color: '#ffffff', fontSize: '1.2rem', margin: 0, fontWeight: 900 }}>ADMIN <span style={{ color: '#bfdbfe', fontWeight: 400 }}>CENTRAL</span></h1>
+            <aside className={`db-sidebar ${isSidebarOpen ? 'open' : ''} ${isCollapsed ? 'collapsed' : ''}`} style={{ backgroundColor: '#2563eb', borderRight: 'none', width: isCollapsed ? '72px' : '280px' }}>
+                <div className="db-logo-section" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: isCollapsed ? 'center' : 'flex-start' }}>
+                    <div className="db-logo-placeholder" style={{ background: '#ffffff', color: '#2563eb', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, flexShrink: 0 }}>M</div>
+                    {!isCollapsed && <h1 className="db-logo-text" style={{ color: '#ffffff', fontSize: '1.2rem', margin: 0, fontWeight: 900, whiteSpace: 'nowrap' }}>ADMIN <span style={{ color: '#bfdbfe', fontWeight: 400 }}>CENTRAL</span></h1>}
                     <button
                         className="db-menu-toggle mobile-only"
                         onClick={() => setIsSidebarOpen(false)}
@@ -51,6 +54,16 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                     </button>
+                    {!isSidebarOpen && !isCollapsed && (
+                        <button className="desktop-only" onClick={() => setIsCollapsed(true)} style={{ background: 'none', border: 'none', color: '#fff', padding: '0.25rem', cursor: 'pointer', opacity: 0.6, marginLeft: 'auto' }}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>
+                        </button>
+                    )}
+                    {isCollapsed && (
+                        <button onClick={() => setIsCollapsed(false)} style={{ color: '#fff', cursor: 'pointer', opacity: 0.6, position: 'absolute', right: '-12px', top: '22px', background: '#2563eb', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.2)', padding: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m9 18 6-6-6-6"/></svg>
+                        </button>
+                    )}
                 </div>
 
                 <nav className="db-nav" style={{ padding: '0 1rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -66,31 +79,41 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                                     backgroundColor: active ? '#ffffff' : 'transparent',
                                     opacity: active ? 1 : 0.8,
                                     borderRadius: '0.5rem',
-                                    padding: '0.75rem 1rem'
+                                    padding: isCollapsed ? '0.75rem' : '0.75rem 1rem',
+                                    justifyContent: isCollapsed ? 'center' : 'flex-start'
                                 }}
                                 onClick={() => setIsSidebarOpen(false)}
+                                title={isCollapsed ? item.label : ''}
                             >
                                 <span className="db-nav-icon">{item.icon}</span>
-                                <span className="db-nav-label" style={{ fontWeight: active ? 800 : 600 }}>{item.label}</span>
+                                {!isCollapsed && <span className="db-nav-label" style={{ fontWeight: active ? 800 : 600 }}>{item.label}</span>}
                             </Link>
                         );
                     })}
                 </nav>
 
-                <div className="db-user-mini" style={{ borderTop: '1px solid rgba(255,255,255,0.2)', padding: '1.5rem', marginTop: 'auto' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#ffffff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem' }}>SA</div>
-                        <div style={{ color: '#ffffff' }}>
-                            <div style={{ fontSize: '0.85rem', fontWeight: 800 }}>Super Admin</div>
-                            <div style={{ fontSize: '0.65rem', color: '#bfdbfe' }}>System Brain</div>
-                        </div>
+                <div className="db-user-mini" style={{ borderTop: '1px solid rgba(255,255,255,0.2)', padding: isCollapsed ? '1rem 0.5rem' : '1.5rem', marginTop: 'auto' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: isCollapsed ? 'center' : 'flex-start' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#ffffff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0 }}>SA</div>
+                        {!isCollapsed && (
+                            <div style={{ color: '#ffffff' }}>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 800 }}>Super Admin</div>
+                                <div style={{ fontSize: '0.65rem', color: '#bfdbfe' }}>System Brain</div>
+                            </div>
+                        )}
                     </div>
-                    <button onClick={handleLogout} className="db-btn db-btn-ghost" style={{ width: '100%', marginTop: '1rem', justifyContent: 'center', color: '#ffffff', border: '1px solid rgba(255,255,255,0.3)', fontSize: '0.8rem', background: 'rgba(255,255,255,0.1)' }}>Log Out</button>
+                    {!isCollapsed ? (
+                        <button onClick={handleLogout} className="db-btn db-btn-ghost" style={{ width: '100%', marginTop: '1rem', justifyContent: 'center', color: '#ffffff', border: '1px solid rgba(255,255,255,0.3)', fontSize: '0.8rem', background: 'rgba(255,255,255,0.1)' }}>Log Out</button>
+                    ) : (
+                        <button onClick={handleLogout} title="Log Out" style={{ background: 'none', border: 'none', color: '#fff', width: '100%', marginTop: '1rem', cursor: 'pointer', opacity: 0.6 }}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+                        </button>
+                    )}
                 </div>
             </aside>
 
             {/* Main Content */}
-            <main className="db-main">
+            <main className="db-main" style={{ marginLeft: isCollapsed ? '72px' : '280px', transition: 'margin 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}>
                 <header className="db-header" style={{ backgroundColor: '#fff', borderBottom: '1px solid #e2e8f0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <button
