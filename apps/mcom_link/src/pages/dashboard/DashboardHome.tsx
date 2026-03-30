@@ -34,7 +34,7 @@ export default function DashboardHome() {
                     <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔌</div>
                     <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.5rem' }}>Unable to Connect to Engine</h2>
                     <p style={{ color: '#64748b', maxWidth: '400px', margin: '0 auto 2rem' }}>
-                        We're having trouble reaching the MCOMLINKS core engine. This might be due to a temporary service outage.
+                        We're having trouble reaching the MCOMQLINKS core engine. This might be due to a temporary service outage.
                     </p>
                     <button
                         onClick={() => window.location.reload()}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import AdminLayout from '../../components/AdminLayout';
 import { getPromoSettings, savePromoSettings } from '../../mock/promoStore';
 import type { PromoSettings } from '../../mock/promoStore';
@@ -81,31 +81,55 @@ export default function AdminPromoControl() {
 
                         <h3 className="db-card-title" style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Homepage Banner Section</h3>
                         <div style={{ marginBottom: '1rem' }}>
-                            <label className="db-label">Homepage Title</label>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                <label className="db-label" style={{ marginBottom: 0 }}>Homepage Title</label>
+                                <label style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer' }}>
+                                    <input type="checkbox" checked={settings.showPromoTitle} onChange={e => handleChange('showPromoTitle', e.target.checked)} />
+                                    Show Title
+                                </label>
+                            </div>
                             <input 
                                 type="text" 
                                 className="db-input" 
                                 value={settings.homepagePromoTitle}
                                 onChange={(e) => handleChange('homepagePromoTitle', e.target.value)}
+                                disabled={!settings.showPromoTitle}
+                                style={{ opacity: settings.showPromoTitle ? 1 : 0.6 }}
                             />
                         </div>
                         <div style={{ marginBottom: '1rem' }}>
-                            <label className="db-label">Homepage Description</label>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                <label className="db-label" style={{ marginBottom: 0 }}>Homepage Description</label>
+                                <label style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer' }}>
+                                    <input type="checkbox" checked={settings.showPromoDesc} onChange={e => handleChange('showPromoDesc', e.target.checked)} />
+                                    Show Description
+                                </label>
+                            </div>
                             <textarea 
                                 className="db-input" 
                                 rows={2}
                                 value={settings.homepagePromoDesc}
                                 onChange={(e) => handleChange('homepagePromoDesc', e.target.value)}
+                                disabled={!settings.showPromoDesc}
+                                style={{ opacity: settings.showPromoDesc ? 1 : 0.6 }}
                             />
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                             <div>
-                                <label className="db-label">CTA Text</label>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                    <label className="db-label" style={{ marginBottom: 0 }}>CTA Text</label>
+                                    <label style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer' }}>
+                                        <input type="checkbox" checked={settings.showPromoCTA} onChange={e => handleChange('showPromoCTA', e.target.checked)} />
+                                        Show CTA
+                                    </label>
+                                </div>
                                 <input 
                                     type="text" 
                                     className="db-input" 
                                     value={settings.homepagePromoCTAText}
                                     onChange={(e) => handleChange('homepagePromoCTAText', e.target.value)}
+                                    disabled={!settings.showPromoCTA}
+                                    style={{ opacity: settings.showPromoCTA ? 1 : 0.6 }}
                                 />
                             </div>
                             <div>
@@ -177,12 +201,16 @@ export default function AdminPromoControl() {
                                 }}>
                                     ✦ EXCLUSIVE OFFER
                                 </div>
-                                <h3 style={{ fontSize: '2rem', marginBottom: '1rem', background: 'linear-gradient(135deg, #38bdf8, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                                    {settings.homepagePromoTitle || 'Enter Title'}
-                                </h3>
-                                <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>
-                                    {settings.homepagePromoDesc || 'Enter Description'}
-                                </p>
+                                {settings.showPromoTitle && (
+                                    <h3 style={{ fontSize: '2rem', marginBottom: '1rem', background: 'linear-gradient(135deg, #38bdf8, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                                        {settings.homepagePromoTitle || 'Enter Title'}
+                                    </h3>
+                                )}
+                                {settings.showPromoDesc && (
+                                    <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>
+                                        {settings.homepagePromoDesc || 'Enter Description'}
+                                    </p>
+                                )}
 
                                 {previewMode && (
                                     <div 
@@ -191,17 +219,19 @@ export default function AdminPromoControl() {
                                     />
                                 )}
 
-                                <button style={{ 
-                                    background: 'linear-gradient(135deg, #3b82f6, #6366f1)', 
-                                    border: 'none', 
-                                    color: 'white', 
-                                    padding: '0.8rem 2rem', 
-                                    borderRadius: '8px',
-                                    fontWeight: 'bold',
-                                    cursor: 'pointer'
-                                }}>
-                                    {settings.homepagePromoCTAText || 'CTA text'}
-                                </button>
+                                {settings.showPromoCTA && (
+                                    <button style={{ 
+                                        background: 'linear-gradient(135deg, #3b82f6, #6366f1)', 
+                                        border: 'none', 
+                                        color: 'white', 
+                                        padding: '0.8rem 2rem', 
+                                        borderRadius: '8px',
+                                        fontWeight: 'bold',
+                                        cursor: 'pointer'
+                                    }}>
+                                        {settings.homepagePromoCTAText || 'CTA text'}
+                                    </button>
+                                )}
                             </div>
                         </div>
 

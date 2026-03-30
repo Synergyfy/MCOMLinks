@@ -128,9 +128,13 @@ function App() {
           <section className="hero-left">
             <div className="badge">{settings.heroBadge}</div>
             <h1 className="main-headline">
-              {settings.heroTitle.split(settings.heroTitleGradient)[0]}
-              <span className="gradient-text">{settings.heroTitleGradient}</span>
-              {settings.heroTitle.split(settings.heroTitleGradient)[1]}
+              {settings.heroTitle.includes(settings.heroTitleGradient) ? (
+                <>
+                  {settings.heroTitle.split(settings.heroTitleGradient)[0]}
+                  <span className="gradient-text">{settings.heroTitleGradient}</span>
+                  {settings.heroTitle.split(settings.heroTitleGradient)[1]}
+                </>
+              ) : settings.heroTitle}
             </h1>
             <p className="hero-description">
               {settings.heroDesc}
@@ -205,9 +209,13 @@ function App() {
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <div className="badge">{settings.featuresBadge}</div>
             <h2 className="main-headline" style={{ fontSize: '3rem' }}>
-              {settings.featuresTitle.split(settings.featuresTitleGradient)[0]}
-              <span className="gradient-text">{settings.featuresTitleGradient}</span>
-              {settings.featuresTitle.split(settings.featuresTitleGradient)[1]}
+              {settings.featuresTitle.includes(settings.featuresTitleGradient) ? (
+                <>
+                  {settings.featuresTitle.split(settings.featuresTitleGradient)[0]}
+                  <span className="gradient-text">{settings.featuresTitleGradient}</span>
+                  {settings.featuresTitle.split(settings.featuresTitleGradient)[1]}
+                </>
+              ) : settings.featuresTitle}
             </h2>
             <p className="hero-description" style={{ margin: '0 auto', maxWidth: '620px' }}>
               {settings.featuresDesc}
@@ -232,9 +240,13 @@ function App() {
               <div>
                 <div className="badge">{settings.howItWorksBadge}</div>
                 <h2 className="main-headline" style={{ fontSize: '2.5rem' }}>
-                  {settings.howItWorksTitle.split(settings.howItWorksTitleGradient)[0]}
-                  <span className="gradient-text">{settings.howItWorksTitleGradient}</span>
-                  {settings.howItWorksTitle.split(settings.howItWorksTitleGradient)[1]}
+                  {settings.howItWorksTitle.includes(settings.howItWorksTitleGradient) ? (
+                    <>
+                      {settings.howItWorksTitle.split(settings.howItWorksTitleGradient)[0]}
+                      <span className="gradient-text">{settings.howItWorksTitleGradient}</span>
+                      {settings.howItWorksTitle.split(settings.howItWorksTitleGradient)[1]}
+                    </>
+                  ) : settings.howItWorksTitle}
                 </h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2.25rem', marginTop: '2.5rem' }}>
                   {settings.steps.map((step, i) => (
@@ -282,9 +294,13 @@ function App() {
         <section className="final-cta" style={{ textAlign: 'center', padding: '6rem 0 8rem' }}>
           <div className="badge" style={{ margin: '0 auto 2rem' }}>{settings.finalBadge}</div>
           <h2 className="main-headline">
-            {settings.finalTitle.split(settings.finalTitleGradient)[0]}
-            <span className="gradient-text">{settings.finalTitleGradient}</span>
-            {settings.finalTitle.split(settings.finalTitleGradient)[1]}
+            {settings.finalTitle.includes(settings.finalTitleGradient) ? (
+              <>
+                {settings.finalTitle.split(settings.finalTitleGradient)[0]}
+                <span className="gradient-text">{settings.finalTitleGradient}</span>
+                {settings.finalTitle.split(settings.finalTitleGradient)[1]}
+              </>
+            ) : settings.finalTitle}
           </h2>
           <p className="hero-description" style={{ margin: '0 auto 3rem', maxWidth: '560px' }}>
             {settings.finalDesc}

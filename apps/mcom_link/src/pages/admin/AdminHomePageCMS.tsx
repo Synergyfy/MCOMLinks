@@ -34,7 +34,21 @@ export default function AdminHomePageCMS() {
     const handleChange = useCallback((field: keyof HomeSettings, value: any) => {
         setSettings(prev => {
             if (!prev) return prev;
-            return { ...prev, [field]: value };
+            const next = { ...prev, [field]: value };
+            
+            // Sync gradient highlight word with its title to keep position
+            if (typeof field === 'string' && field.endsWith('Gradient')) {
+                const titleField = field.replace('Gradient', '') as keyof HomeSettings;
+                const oldGradient = prev[field] as string;
+                const oldTitle = prev[titleField] as string;
+                
+                if (typeof oldTitle === 'string' && oldGradient && oldTitle.includes(oldGradient)) {
+                    // Update the title field as well, replacing exactly where the old word was
+                    (next as any)[titleField] = oldTitle.replace(oldGradient, value);
+                }
+            }
+            
+            return next;
         });
         setHasChanges(true);
     }, []);
