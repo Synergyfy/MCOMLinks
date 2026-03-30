@@ -146,6 +146,12 @@ export default function AdminDashboard() {
                             <Link to="/admin/identity" className="db-btn db-btn-ghost" style={{ border: '1px solid rgba(255,255,255,0.2)', color: '#fff', justifyContent: 'center' }}>
                                 Deploy Global Template
                             </Link>
+                            <Link to="/admin/promo" className="db-btn db-btn-ghost" style={{ border: '1px solid rgba(255,255,255,0.2)', color: '#fff', justifyContent: 'center', background: 'rgba(56, 189, 248, 0.1)' }}>
+                                Manage Promo Campaigns
+                            </Link>
+                            <Link to="/admin/home-cms" className="db-btn db-btn-ghost" style={{ border: '1px solid rgba(255,255,255,0.2)', color: '#fff', justifyContent: 'center' }}>
+                                Homepage Content CMS
+                            </Link>
 
                         </div>
                     </div>

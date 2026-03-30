@@ -47,6 +47,9 @@ import IdentityControl from './pages/admin/IdentityControl.tsx'
 import SystemHealth from './pages/admin/SystemHealth.tsx'
 import AdApprovalPage from './pages/admin/AdApproval.tsx'
 import PlanConfig from './pages/admin/PlanConfig.tsx'
+import AdminPromoControl from './pages/admin/AdminPromoControl.tsx'
+import AdminHomePageCMS from './pages/admin/AdminHomePageCMS.tsx'
+import PromoPricingPage from './pages/PromoPricingPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -55,6 +58,7 @@ createRoot(document.getElementById('root')!).render(
         {/* Marketing Homepage */}
         <Route path="/" element={<App />} />
         <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/pricing/promo" element={<PromoPricingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
 
@@ -92,6 +96,8 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/admin/health" element={<ProtectedRoute><SystemHealth /></ProtectedRoute>} />
         <Route path="/admin/ad-approval" element={<ProtectedRoute><AdApprovalPage /></ProtectedRoute>} />
         <Route path="/admin/plans" element={<ProtectedRoute><PlanConfig /></ProtectedRoute>} />
+        <Route path="/admin/promo" element={<ProtectedRoute><AdminPromoControl /></ProtectedRoute>} />
+        <Route path="/admin/home-cms" element={<ProtectedRoute><AdminHomePageCMS /></ProtectedRoute>} />
 
         {/* Global Fallback Route */}
         <Route path="*" element={<FallbackPage />} />
