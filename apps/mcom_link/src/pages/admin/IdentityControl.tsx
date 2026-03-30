@@ -5,7 +5,7 @@ import { api } from '../../api/apiClient'
 const DEFAULT_TEMPLATE = {
     brandColor: '#2563eb',
     headerText: 'Welcome to the High Street',
-    footerText: 'Powered by MCOMLINKS',
+    footerText: 'Powered by MCOMQLINKS',
     showSocials: false,
 }
 

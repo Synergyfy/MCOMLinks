@@ -6,6 +6,9 @@ export interface PromoSettings {
   homepagePromoTitle: string;
   homepagePromoDesc: string;
   homepagePromoCTAText: string;
+  showPromoTitle: boolean;
+  showPromoDesc: boolean;
+  showPromoCTA: boolean;
   adminHtmlEmbed: string;
   animationStyle: 'none' | 'bounce' | 'pulse' | 'flash';
 }
@@ -20,6 +23,9 @@ const defaultPromo: PromoSettings = {
   homepagePromoTitle: 'Limited Time Offer 🚀',
   homepagePromoDesc: 'Get our premium plans at a massive discount for a limited time!',
   homepagePromoCTAText: 'Get Started Now',
+  showPromoTitle: true,
+  showPromoDesc: true,
+  showPromoCTA: true,
   adminHtmlEmbed: `
 <div style="background: linear-gradient(135deg, #8b5cf6, #2563eb); color: white; padding: 3rem; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
   <h2 style="font-size: 2.5rem; margin-bottom: 1rem; font-weight: 800;">Flash Sale! 50% OFF PRO+</h2>
@@ -36,7 +42,7 @@ export const getPromoSettings = (): PromoSettings => {
   const stored = localStorage.getItem(PROMO_STORAGE_KEY);
   if (stored) {
     try {
-      return JSON.parse(stored);
+      return { ...defaultPromo, ...JSON.parse(stored) };
     } catch {
       return defaultPromo;
     }

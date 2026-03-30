@@ -33,26 +33,39 @@ export default function PromoBanner() {
                 ✦ FLASH PROMO ACTIVE
             </div>
             
-            <h2 style={{ fontSize: '2.5rem', marginBottom: '1rem', fontWeight: 800, background: 'linear-gradient(135deg, #38bdf8, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                {promo.homepagePromoTitle}
-            </h2>
+            {promo.showPromoTitle && (
+              <h2 style={{ fontSize: '2.5rem', marginBottom: '1rem', fontWeight: 800, background: 'linear-gradient(135deg, #38bdf8, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  {promo.homepagePromoTitle}
+              </h2>
+            )}
             
-            <p style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '2rem', lineHeight: 1.6 }}>
-                {promo.homepagePromoDesc}
-            </p>
+            {promo.showPromoDesc && (
+              <p style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '2rem', lineHeight: 1.6 }}>
+                  {promo.homepagePromoDesc}
+              </p>
+            )}
 
-            <Link to={promo.promoCTALink} style={{ 
-                display: 'inline-flex',
-                alignItems: 'center',
-                background: 'linear-gradient(135deg, #3b82f6, #6366f1)', 
-                color: 'white', 
-                padding: '1rem 2.5rem', 
-                borderRadius: '8px',
-                fontWeight: 'bold',
-                textDecoration: 'none',
-            }}>
-                {promo.homepagePromoCTAText} <ArrowRight />
-            </Link>
+            {promo.adminHtmlEmbed && (
+              <div 
+                style={{ marginTop: '2rem', marginBottom: '2rem', textAlign: 'left' }}
+                dangerouslySetInnerHTML={{ __html: promo.adminHtmlEmbed }}
+              />
+            )}
+
+            {promo.showPromoCTA && (
+              <Link to={promo.promoCTALink} style={{ 
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  background: 'linear-gradient(135deg, #3b82f6, #6366f1)', 
+                  color: 'white', 
+                  padding: '1rem 2.5rem', 
+                  borderRadius: '8px',
+                  fontWeight: 'bold',
+                  textDecoration: 'none',
+              }}>
+                  {promo.homepagePromoCTAText} <ArrowRight />
+              </Link>
+            )}
         </div>
         
         {/* Subtle background glow */}

@@ -7,7 +7,7 @@ export default function LoadingScreen() {
         <div className="sf-loading">
             <div className="sf-loading-content">
                 <div className="sf-loading-logo">
-                    MCOM<span>.LINKS</span>
+                    MCOMQ<span>.LINKS</span>
                 </div>
                 <div className="sf-loading-spinner">
                     <div className="sf-spinner-ring"></div>
