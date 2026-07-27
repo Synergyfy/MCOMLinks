@@ -1,9 +1,14 @@
-import { API_BASE_URL } from './constants';
+import { API_BASE_URL, USE_MOCK } from './constants';
+import { mockApiRequest } from './mockHandler';
 
 export async function apiRequest<T>(
     endpoint: string,
     options: RequestInit = {}
 ): Promise<T> {
+    if (USE_MOCK) {
+        return mockApiRequest<T>(endpoint, options);
+    }
+
     const token = localStorage.getItem('access_token');
 
     const headers = {
