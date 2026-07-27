@@ -188,7 +188,7 @@ const routes: MockRoute[] = [
     {
         pattern: '/admin/offers',
         method: 'GET',
-        handler: (_params, _body, query) => {
+        handler: (_params, _body, query = {}) => {
             let filtered = [...mockOffers];
             if (query.status) {
                 filtered = filtered.filter(o => o.status === query.status);
