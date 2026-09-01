@@ -36,7 +36,7 @@ export default function SupportPage() {
             if (data?.agentEmail) {
                 setAgentEmail(data.agentEmail)
             }
-        } catch (err) {
+        } catch {
             // Ignore if settings fetch fails
         }
     }

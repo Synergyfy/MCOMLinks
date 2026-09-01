@@ -71,33 +71,33 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/confirmed/:offerId" element={<ConfirmationPage />} />
 
         {/* Business Owner Dashboard Routes */}
-        <Route path="/dashboard" element={<ProtectedRoute><DashboardHome /></ProtectedRoute>} />
-        <Route path="/dashboard/offers" element={<ProtectedRoute><OffersPage /></ProtectedRoute>} />
-        <Route path="/dashboard/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
-        <Route path="/dashboard/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
-        <Route path="/dashboard/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-        <Route path="/dashboard/billing" element={<ProtectedRoute><BillingPage /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute roles={['BUSINESS']}><DashboardHome /></ProtectedRoute>} />
+        <Route path="/dashboard/offers" element={<ProtectedRoute roles={['BUSINESS']}><OffersPage /></ProtectedRoute>} />
+        <Route path="/dashboard/analytics" element={<ProtectedRoute roles={['BUSINESS']}><AnalyticsPage /></ProtectedRoute>} />
+        <Route path="/dashboard/support" element={<ProtectedRoute roles={['BUSINESS']}><SupportPage /></ProtectedRoute>} />
+        <Route path="/dashboard/settings" element={<ProtectedRoute roles={['BUSINESS']}><SettingsPage /></ProtectedRoute>} />
+        <Route path="/dashboard/billing" element={<ProtectedRoute roles={['BUSINESS']}><BillingPage /></ProtectedRoute>} />
 
         {/* Agent Platform Routes */}
-        <Route path="/agent" element={<ProtectedRoute><AgentDashboard /></ProtectedRoute>} />
-        <Route path="/agent/portfolio" element={<ProtectedRoute><PortfolioPage /></ProtectedRoute>} />
-        <Route path="/agent/onboard" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-        <Route path="/agent/performance" element={<ProtectedRoute><AgentPerformancePage /></ProtectedRoute>} />
-        <Route path="/agent/business/:id" element={<ProtectedRoute><BusinessDetailsPage /></ProtectedRoute>} />
-        <Route path="/agent/business/:id/logs" element={<ProtectedRoute><BusinessCommLogPage /></ProtectedRoute>} />
+        <Route path="/agent" element={<ProtectedRoute roles={['AGENT']}><AgentDashboard /></ProtectedRoute>} />
+        <Route path="/agent/portfolio" element={<ProtectedRoute roles={['AGENT']}><PortfolioPage /></ProtectedRoute>} />
+        <Route path="/agent/onboard" element={<ProtectedRoute roles={['AGENT']}><OnboardingPage /></ProtectedRoute>} />
+        <Route path="/agent/performance" element={<ProtectedRoute roles={['AGENT']}><AgentPerformancePage /></ProtectedRoute>} />
+        <Route path="/agent/business/:id" element={<ProtectedRoute roles={['AGENT']}><BusinessDetailsPage /></ProtectedRoute>} />
+        <Route path="/agent/business/:id/logs" element={<ProtectedRoute roles={['AGENT']}><BusinessCommLogPage /></ProtectedRoute>} />
 
         {/* Admin Platform Routes */}
-        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-        <Route path="/admin/locations" element={<ProtectedRoute><LocationManager /></ProtectedRoute>} />
-        <Route path="/admin/offers" element={<ProtectedRoute><AdminOfferManager /></ProtectedRoute>} />
-        <Route path="/admin/merchants" element={<ProtectedRoute><MerchantControl /></ProtectedRoute>} />
-        <Route path="/admin/seasons" element={<ProtectedRoute><SeasonalCampaigns /></ProtectedRoute>} />
-        <Route path="/admin/identity" element={<ProtectedRoute><IdentityControl /></ProtectedRoute>} />
-        <Route path="/admin/health" element={<ProtectedRoute><SystemHealth /></ProtectedRoute>} />
-        <Route path="/admin/ad-approval" element={<ProtectedRoute><AdApprovalPage /></ProtectedRoute>} />
-        <Route path="/admin/plans" element={<ProtectedRoute><PlanConfig /></ProtectedRoute>} />
-        <Route path="/admin/promo" element={<ProtectedRoute><AdminPromoControl /></ProtectedRoute>} />
-        <Route path="/admin/home-cms" element={<ProtectedRoute><AdminHomePageCMS /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute roles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/locations" element={<ProtectedRoute roles={['ADMIN']}><LocationManager /></ProtectedRoute>} />
+        <Route path="/admin/offers" element={<ProtectedRoute roles={['ADMIN']}><AdminOfferManager /></ProtectedRoute>} />
+        <Route path="/admin/merchants" element={<ProtectedRoute roles={['ADMIN']}><MerchantControl /></ProtectedRoute>} />
+        <Route path="/admin/seasons" element={<ProtectedRoute roles={['ADMIN']}><SeasonalCampaigns /></ProtectedRoute>} />
+        <Route path="/admin/identity" element={<ProtectedRoute roles={['ADMIN']}><IdentityControl /></ProtectedRoute>} />
+        <Route path="/admin/health" element={<ProtectedRoute roles={['ADMIN']}><SystemHealth /></ProtectedRoute>} />
+        <Route path="/admin/ad-approval" element={<ProtectedRoute roles={['ADMIN']}><AdApprovalPage /></ProtectedRoute>} />
+        <Route path="/admin/plans" element={<ProtectedRoute roles={['ADMIN']}><PlanConfig /></ProtectedRoute>} />
+        <Route path="/admin/promo" element={<ProtectedRoute roles={['ADMIN']}><AdminPromoControl /></ProtectedRoute>} />
+        <Route path="/admin/home-cms" element={<ProtectedRoute roles={['ADMIN']}><AdminHomePageCMS /></ProtectedRoute>} />
 
         {/* Global Fallback Route */}
         <Route path="*" element={<FallbackPage />} />

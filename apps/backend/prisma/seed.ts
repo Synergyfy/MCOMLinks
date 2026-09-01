@@ -1,10 +1,13 @@
 import "dotenv/config";
 import { PrismaClient } from '@prisma/client';
+import { hashPassword } from '../src/auth/password.util';
 
 const prisma = new PrismaClient();
 
 async function main() {
     console.log('Starting to seed the database...');
+
+    const seededPassword = await hashPassword('password123');
 
     // 1. Create demo users
     const demoAdmin = await prisma.user.upsert({
@@ -12,7 +15,7 @@ async function main() {
         update: {},
         create: {
             email: 'admin@mcomlinks.com',
-            password: 'password123',
+            password: seededPassword,
             name: 'Demo Admin',
             role: 'ADMIN',
         },
@@ -23,7 +26,7 @@ async function main() {
         update: {},
         create: {
             email: 'agent@mcomlinks.com',
-            password: 'password123',
+            password: seededPassword,
             name: 'James Agent',
             role: 'AGENT',
         },
@@ -34,9 +37,9 @@ async function main() {
         update: {},
         create: {
             email: 'business@mcomlinks.com',
-            password: 'password123',
+            password: seededPassword,
             name: 'Isabella ShopOwner',
-            role: 'USER',
+            role: 'BUSINESS',
         },
     });
 
@@ -50,9 +53,11 @@ async function main() {
     await prisma.offer.deleteMany();
     await prisma.supportMessage.deleteMany();
 
-    // 3. Create a business profile
-    const profile = await prisma.businessProfile.create({
-        data: {
+    // 3. Create a business profile (idempotent upsert so the seed can be re-run)
+    const profile = await prisma.businessProfile.upsert({
+        where: { userId: demoBusiness.id },
+        update: {},
+        create: {
             name: "Bella's Boutique",
             description: "A premium fashion outlet showcasing the season's latest trends.",
             contactEmail: "hello@bellas.com",

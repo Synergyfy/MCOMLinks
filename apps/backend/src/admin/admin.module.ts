@@ -10,8 +10,16 @@ import { IdentityModule } from './identity/identity.module';
 import { HealthModule } from './health/health.module';
 
 @Module({
-    imports: [PrismaModule, LocationsModule, AdminOffersModule, MerchantsModule, SeasonsModule, IdentityModule, HealthModule],
-    controllers: [AdminController],
-    providers: [AdminService],
+  imports: [
+    PrismaModule,
+    LocationsModule,
+    AdminOffersModule,
+    MerchantsModule,
+    SeasonsModule,
+    IdentityModule,
+    HealthModule,
+  ],
+  controllers: [AdminController],
+  providers: [AdminService],
 })
-export class AdminModule { }
+export class AdminModule {}

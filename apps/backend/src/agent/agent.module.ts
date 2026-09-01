@@ -5,8 +5,8 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { AgentDashboardModule } from './dashboard/dashboard.module';
 
 @Module({
-    imports: [PrismaModule, AgentDashboardModule],
-    controllers: [AgentController],
-    providers: [AgentService],
+  imports: [PrismaModule, AgentDashboardModule],
+  controllers: [AgentController],
+  providers: [AgentService],
 })
-export class AgentModule { }
+export class AgentModule {}

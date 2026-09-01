@@ -418,11 +418,11 @@ export default function PlanConfig() {
                                                 />
                                                 <span style={{ 
                                                     position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, 
-                                                    backgroundColor: !!val ? selectedPlan.color : '#cbd5e1', 
+                                                    backgroundColor: val ? selectedPlan.color : '#cbd5e1', 
                                                     transition: '.4s', borderRadius: '34px' 
                                                 }}>
                                                     <span style={{ 
-                                                        position: 'absolute', content: '""', height: '16px', width: '16px', left: !!val ? '24px' : '4px', bottom: '3px', 
+                                                        position: 'absolute', content: '""', height: '16px', width: '16px', left: val ? '24px' : '4px', bottom: '3px', 
                                                         backgroundColor: 'white', transition: '.4s', borderRadius: '50%' 
                                                     }}></span>
                                                 </span>

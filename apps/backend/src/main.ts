@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import * as express from 'express';
 import { NestFactory, Reflector } from '@nestjs/core';
 import {
   Logger,
@@ -8,9 +9,26 @@ import {
 } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { AllExceptionsFilter } from './filters/all-exceptions.filter';
+import { LoggingInterceptor } from './interceptors/logging.interceptor';
 
 // 1. Shared Configuration Function
 export function configureApp(app: INestApplication) {
+  // Global exception handling & HTTP logging
+  app.useGlobalFilters(new AllExceptionsFilter());
+  app.useGlobalInterceptors(new LoggingInterceptor());
+
+  // Body parsing: the MCOM webhook endpoint must receive the raw body buffer so
+  // its HMAC signature can be verified; every other route uses standard JSON.
+  // (Nest's default body parser is disabled so we control this per route.)
+  app.use((req: any, res: any, next: any) => {
+    if (req.url && req.url.startsWith('/api/v1/mcom/webhook')) {
+      express.raw({ type: 'application/json', limit: '1mb' })(req, res, next);
+    } else {
+      express.json({ limit: '1mb' })(req, res, next);
+    }
+  });
+
   // Normalization: collapse multiple slashes (e.g. //auth/login -> /auth/login)
   app.use((req: any, res: any, next: any) => {
     if (req.url && req.url.includes('//')) {
@@ -25,8 +43,6 @@ export function configureApp(app: INestApplication) {
     credentials: true,
   });
 
-
-
   // Validation
   app.useGlobalPipes(
     new ValidationPipe({
@@ -40,14 +56,14 @@ export function configureApp(app: INestApplication) {
   );
 
   // Serialization
-  app.useGlobalInterceptors(
-    new ClassSerializerInterceptor(app.get(Reflector)),
-  );
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
   // Swagger
   const config = new DocumentBuilder()
     .setTitle('MCOMLINKS API')
-    .setDescription('The MCOMLINKS Backend API for Rotator and Management Platform')
+    .setDescription(
+      'The MCOMLINKS Backend API for Rotator and Management Platform',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .build();
@@ -74,6 +90,7 @@ if (require.main === module) {
     const logger = new Logger('Bootstrap');
     const app = await NestFactory.create(AppModule, {
       logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+      bodyParser: false,
     });
 
     configureApp(app);
@@ -91,7 +108,7 @@ let cachedApp: any;
 
 export default async (req: unknown, res: unknown) => {
   if (!cachedApp) {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule, { bodyParser: false });
     configureApp(app);
     await app.init();
     cachedApp = app.getHttpAdapter().getInstance() as unknown;

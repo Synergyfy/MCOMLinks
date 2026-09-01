@@ -4,9 +4,9 @@ import { AgentOnboardService } from './onboard.service';
 import { PrismaModule } from '../../../prisma/prisma.module';
 
 @Module({
-    imports: [PrismaModule],
-    controllers: [AgentOnboardController],
-    providers: [AgentOnboardService],
-    exports: [AgentOnboardService],
+  imports: [PrismaModule],
+  controllers: [AgentOnboardController],
+  providers: [AgentOnboardService],
+  exports: [AgentOnboardService],
 })
-export class AgentOnboardModule { }
+export class AgentOnboardModule {}

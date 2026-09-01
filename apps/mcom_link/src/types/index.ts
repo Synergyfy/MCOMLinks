@@ -12,27 +12,37 @@ export interface Offer {
     videoUrl?: string
     ctaType: CTAType
     ctaLabel: string
+    // Real backend field (backend uses `leadDestination`, not `redirectUrl`)
+    leadDestination?: string
     redirectUrl?: string
-    googleMapsLocation?: string
     redemptionCode?: string
     redemptionInstructions?: string
-    isActive: boolean
     isPremium: boolean
-    season: Season
-    startDate: string // ISO date string
-    endDate: string   // ISO date string
     status: OfferStatus
     visibility: 'national' | 'hyperlocal' | 'nearby'
-    exposureType: 'national' | 'hyperlocal' | 'nearby'
+    targetPostcode?: string
+    // Backend counters & timestamps. The dashboard endpoint nests these under
+    // `performance`, while the storefront returns them at the top level.
+    scans?: number
+    claims?: number
+    activeViewers?: number
+    createdAt?: string
+    updatedAt?: string
+    startDate: string // ISO date string
+    endDate: string   // ISO date string
+    rejectionReason?: string
+    // Frontend-only extras (mock data / admin UI); not sent to the backend
+    season?: Season
+    exposureType?: 'national' | 'hyperlocal' | 'nearby'
     rotatorWeight?: number // 0-100 percentage
     targetRadius?: number // in km, for nearby
-    targetPostcode?: string
     billingStatus?: 'active' | 'suspended' | 'pending'
-    performance: {
+    googleMapsLocation?: string
+    isActive?: boolean
+    performance?: {
         scans: number
         claims: number
     }
-    rejectionReason?: string
     claimFields?: ClaimField[]
     activities?: EngagementActivity[]
 }
@@ -101,4 +111,45 @@ export interface BusinessProfile {
     plan: 'Basic' | 'Premium';
     subscriptionStatus: 'active' | 'suspended';
     offers: string[];
+}
+
+// MCOM Ecosystem: centrally-managed plan (Plan CRUD & centralized payments)
+export type BillingCycle = 'monthly' | 'quarterly' | 'annual'
+export type PaymentProvider = 'stripe' | 'paypal' | 'wallet'
+export type PlanType = 'STANDARD' | 'TRIAL' | 'SEASONAL'
+
+export interface Plan {
+    id: string
+    name: string
+    description?: string
+    monthlyPrice: number
+    quarterlyPrice: number
+    annualPrice: number
+    features: string[]
+    configuration: {
+        quotas: Record<string, number | boolean>
+        featureFlags: Record<string, boolean>
+    }
+    isActive: boolean
+    isDefault: boolean
+    type: PlanType
+    trialDuration?: number
+    seasonId?: string
+    stripeMonthlyPriceId?: string
+    stripeQuarterlyPriceId?: string
+    stripeAnnualPriceId?: string
+    paypalMonthlyPlanId?: string
+    paypalQuarterlyPlanId?: string
+    paypalAnnualPlanId?: string
+    createdAt?: string
+    updatedAt?: string
+}
+
+export interface PurchasedPackage {
+    id: string
+    planId: string
+    planName: string
+    billingCycle: BillingCycle
+    status: 'active' | 'cancelled' | 'expired'
+    expiresAt: string
 }

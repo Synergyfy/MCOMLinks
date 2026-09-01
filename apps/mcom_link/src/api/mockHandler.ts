@@ -2,6 +2,7 @@ import { mockLocations } from '../mock/locations';
 import { mockOffers } from '../mock/offers';
 import { mockBusiness, mockMetrics } from '../mock/business';
 import { mockSeasons, systemLogs } from '../mock/admin';
+import { mockPlans } from '../mock/plans';
 
 const delay = (ms = 200) => new Promise(r => setTimeout(r, ms));
 
@@ -399,6 +400,228 @@ const routes: MockRoute[] = [
                 { id: 'act-3', type: 'claim', timestamp: new Date().toISOString(), interestScore: 'verified' },
             ],
         }),
+    },
+
+    // --- ADMIN MERCHANTS (list) ---
+    {
+        pattern: '/admin/merchants',
+        method: 'GET',
+        handler: () => ([
+            { id: 'm-001', name: "Bella's Boutique", contactEmail: 'hello@bellas.com', plan: 'Hyper-local', subscriptionStatus: 'active', user: { email: 'business@mcomlinks.com', name: 'Isabella' } },
+            { id: 'm-002', name: 'Fashion Hub', contactEmail: 'hello@fashionhub.com', plan: 'Nearby', subscriptionStatus: 'suspended', user: { email: 'fashion@mcomlinks.com', name: 'Fashion Hub' } },
+            { id: 'm-003', name: 'Tech World', contactEmail: 'hello@techworld.com', plan: 'National', subscriptionStatus: 'active', user: { email: 'tech@mcomlinks.com', name: 'Tech World' } },
+        ]),
+    },
+    {
+        pattern: '/admin/merchants/:id/plan',
+        method: 'PATCH',
+        handler: (params, body) => ({
+            id: params.id,
+            plan: body?.plan || 'Basic',
+            updatedAt: new Date().toISOString(),
+        }),
+    },
+
+    // --- ADMIN SEASONS (list) ---
+    {
+        pattern: '/admin/seasons',
+        method: 'GET',
+        handler: () => mockSeasons,
+    },
+
+    // --- ADMIN IDENTITY ---
+    {
+        pattern: '/admin/identity',
+        method: 'GET',
+        handler: () => ({
+            brandColor: '#0a0a0a',
+            headerText: 'Supporting Local Business',
+            footerText: 'Powered by MCOMLinks System',
+            showSocials: true,
+        }),
+    },
+
+    // --- ADMIN HEALTH ---
+    {
+        pattern: '/admin/health/logs',
+        method: 'GET',
+        handler: () => systemLogs,
+    },
+    {
+        pattern: '/admin/health/audit',
+        method: 'GET',
+        handler: () => systemLogs,
+    },
+    {
+        pattern: '/admin/health/status',
+        method: 'GET',
+        handler: () => ([
+            { id: 'redis', label: 'Redis Pointers', value: 'CONNECTED', status: 'optimal' },
+            { id: 'sync', label: 'Sync Latency', value: '12ms', status: 'optimal' },
+            { id: 'backup', label: 'Data Backups', value: 'SECURE', status: 'optimal' },
+        ]),
+    },
+
+    // --- ADMIN OFFER BILLING ---
+    {
+        pattern: '/admin/offers/:id/billing',
+        method: 'PATCH',
+        handler: (params, body) => ({
+            success: true,
+            offerId: params.id,
+            subscriptionStatus: body?.status || 'suspended',
+        }),
+    },
+
+    // --- MCOM ECOSYSTEM: PLANS & PURCHASE ---
+    {
+        pattern: '/api/v1/plans',
+        method: 'GET',
+        handler: () => mockPlans,
+    },
+    {
+        pattern: '/api/v1/mcom/packages/purchase/initiate',
+        method: 'POST',
+        handler: (_params, body) => {
+            const plan = mockPlans.find(p => p.id === body?.externalPlanId) || mockPlans[0];
+            return {
+                clientSecret: 'pi_mock_secret_' + Date.now(),
+                type: 'payment',
+                plan,
+            };
+        },
+    },
+    {
+        pattern: '/api/v1/mcom/packages/purchase/confirm',
+        method: 'POST',
+        handler: (_params, body) => {
+            const plan = mockPlans.find(p => p.id === body?.externalPlanId) || mockPlans[0];
+            return {
+                success: true,
+                package: {
+                    id: 'pkg-' + Date.now(),
+                    planId: plan.id,
+                    planName: plan.name,
+                    billingCycle: body?.billingCycle || 'monthly',
+                    status: 'active',
+                    expiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+                },
+            };
+        },
+    },
+
+    // --- AGENT PLATFORM ---
+    {
+        pattern: '/agent/dashboard/stats',
+        method: 'GET',
+        handler: () => ({
+            newBusinesses: 12,
+            newBusinessesGoal: 15,
+            activeOffers: 34,
+            activeOffersGoal: 40,
+            portfolioScans: 4520,
+            conversion: 8.4,
+        }),
+    },
+    {
+        pattern: '/agent/dashboard/urgent-actions',
+        method: 'GET',
+        handler: () => ([
+            { id: 'a1', type: 'approval', message: 'Fashion Hub submitted a new offer for review', businessId: 'b-002' },
+            { id: 'a2', type: 'expiry', message: "Tech World's National plan expires in 3 days", businessId: 'b-003' },
+        ]),
+    },
+    {
+        pattern: '/agent/dashboard/leaderboard',
+        method: 'GET',
+        handler: () => ([
+            { id: 'b-001', name: "Bella's Boutique", scans: 2100, claims: 320, conversion: 15.2 },
+            { id: 'b-002', name: 'Fashion Hub', scans: 1450, claims: 210, conversion: 14.5 },
+            { id: 'b-003', name: 'Tech World', scans: 970, claims: 120, conversion: 12.4 },
+        ]),
+    },
+    {
+        pattern: '/agent/portfolio',
+        method: 'GET',
+        handler: () => ({
+            portfolio: [
+                { id: 'b-001', name: "Bella's Boutique", ownerName: 'Isabella', contactEmail: 'hello@bellas.com', contactPhone: '+44 20 7946 0123', plan: 'Hyper-local', subscriptionStatus: 'active', totalScans: 2100, totalClaims: 320, offers: [{ id: 'off-1', headline: 'Buy 1 Get 1 Free', status: 'approved', scans: 2100 }] },
+                { id: 'b-002', name: 'Fashion Hub', ownerName: 'Fashion Hub', contactEmail: 'hello@fashionhub.com', contactPhone: '+44 20 7946 0101', plan: 'Nearby', subscriptionStatus: 'suspended', totalScans: 1450, totalClaims: 210, offers: [] },
+                { id: 'b-003', name: 'Tech World', ownerName: 'Tech World', contactEmail: 'hello@techworld.com', contactPhone: '+44 20 7946 0202', plan: 'National', subscriptionStatus: 'active', totalScans: 970, totalClaims: 120, offers: [] },
+            ],
+            targets: { newBusinesses: 12, newBusinessesGoal: 15, activeOffers: 34, activeOffersGoal: 40 },
+        }),
+    },
+    {
+        pattern: '/agent/portfolio/:id',
+        method: 'GET',
+        handler: (params) => {
+            const businesses: any[] = [
+                { id: 'b-001', name: "Bella's Boutique", ownerName: 'Isabella', contactEmail: 'hello@bellas.com', contactPhone: '+44 20 7946 0123', plan: 'Hyper-local', subscriptionStatus: 'active', totalScans: 2100, totalClaims: 320 },
+                { id: 'b-002', name: 'Fashion Hub', ownerName: 'Fashion Hub', contactEmail: 'hello@fashionhub.com', contactPhone: '+44 20 7946 0101', plan: 'Nearby', subscriptionStatus: 'suspended', totalScans: 1450, totalClaims: 210 },
+            ];
+            const business = businesses.find(b => b.id === params.id) || null;
+            if (!business) throw new Error('404: Resource not found');
+            return { business, performance: { totalScans: business.totalScans, totalClaims: business.totalClaims }, offers: [] };
+        },
+    },
+    {
+        pattern: '/agent/performance',
+        method: 'GET',
+        handler: () => ({
+            period: '30d',
+            totalScans: 4520,
+            totalClaims: 650,
+            conversionRate: '14.4%',
+            newBusinesses: 12,
+            activeOffers: 34,
+            timeline: [],
+            byBusiness: [
+                { id: 'b-001', name: "Bella's Boutique", scans: 2100, claims: 320 },
+                { id: 'b-002', name: 'Fashion Hub', scans: 1450, claims: 210 },
+            ],
+        }),
+    },
+    {
+        pattern: '/agent/onboard/checklist',
+        method: 'GET',
+        handler: () => ({
+            steps: [
+                { step: 1, label: 'Business Details', description: 'Collect business name, address, and contact info' },
+                { step: 2, label: 'Owner Account', description: 'Create login credentials for the business owner' },
+                { step: 3, label: 'Plan Selection', description: 'Choose Basic or Premium subscription plan' },
+                { step: 4, label: 'First Offer', description: 'Draft the first offer for admin approval' },
+                { step: 5, label: 'Go Live', description: 'Offer approved and business enters the rotator' },
+            ],
+        }),
+    },
+    {
+        pattern: '/agent/onboard',
+        method: 'POST',
+        handler: (_params, body) => ({
+            message: 'Business successfully onboarded',
+            business: {
+                id: 'b-' + Date.now(),
+                name: body?.name || 'New Business',
+                email: body?.email || 'owner@example.com',
+                plan: body?.plan || 'Basic',
+                temporaryPassword: 'Temp-' + Date.now(),
+            },
+        }),
+    },
+    {
+        pattern: '/agent/business/:id',
+        method: 'GET',
+        handler: (params) => {
+            const businesses: any[] = [
+                { id: 'b-001', name: "Bella's Boutique", ownerName: 'Isabella', contactEmail: 'hello@bellas.com', contactPhone: '+44 20 7946 0123', plan: 'Hyper-local', subscriptionStatus: 'active', totalScans: 2100, totalClaims: 320 },
+                { id: 'b-002', name: 'Fashion Hub', ownerName: 'Fashion Hub', contactEmail: 'hello@fashionhub.com', contactPhone: '+44 20 7946 0101', plan: 'Nearby', subscriptionStatus: 'suspended', totalScans: 1450, totalClaims: 210 },
+                { id: 'b-003', name: 'Tech World', ownerName: 'Tech World', contactEmail: 'hello@techworld.com', contactPhone: '+44 20 7946 0202', plan: 'National', subscriptionStatus: 'active', totalScans: 970, totalClaims: 120 },
+            ];
+            const business = businesses.find(b => b.id === params.id) || null;
+            if (!business) throw new Error('404: Resource not found');
+            return { business, performance: { totalScans: business.totalScans, totalClaims: business.totalClaims }, offers: [] };
+        },
     },
 
     // --- STOREFRONT (PUBLIC) ---

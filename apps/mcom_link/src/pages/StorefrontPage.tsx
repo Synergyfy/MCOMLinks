@@ -24,13 +24,19 @@ export default function StorefrontPage() {
     const [exposureType, setExposureType] = useState<string>('')
     const [animating, setAnimating] = useState<'next' | 'prev' | null>(null)
 
-    // Use a ref to ensure the rotator only advances ONCE per mount (prevents double-firing in StrictMode)
-    const hasFetched = useRef(false)
+    // Use a ref to ensure the rotator only advances ONCE per location (prevents
+    // double-firing in StrictMode). Reset it whenever locationId changes so
+    // navigating between storefronts refetches the correct pool.
+    const hasFetched = useRef<string | null>(null)
+    const animationTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     useEffect(() => {
-        if (!locationId || hasFetched.current) return
+        if (!locationId) return
+        if (hasFetched.current === locationId) return
 
         let isMounted = true
+        hasFetched.current = locationId
+        setLoading(true)
 
         const fetchOfferPool = async () => {
             try {
@@ -42,7 +48,7 @@ export default function StorefrontPage() {
                 setOffers(mockOffers)
                 setLocation(mockLocation)
                 setExposureType(type)
-                hasFetched.current = true
+                setCurrentIndex(0)
             } catch (error) {
                 console.error('Failed to fetch offer pool:', error)
                 if (isMounted) {
@@ -60,10 +66,17 @@ export default function StorefrontPage() {
         }
     }, [locationId])
 
+    // Clean up any pending animation timer on unmount to avoid setState after unmount.
+    useEffect(() => {
+        return () => {
+            if (animationTimer.current) clearTimeout(animationTimer.current)
+        }
+    }, [])
+
     const handleNext = () => {
         if (animating || offers.length <= 1) return
         setAnimating('next')
-        setTimeout(() => {
+        animationTimer.current = setTimeout(() => {
             setCurrentIndex((prev) => (prev + 1) % offers.length)
             setAnimating(null)
         }, 300)
@@ -72,7 +85,7 @@ export default function StorefrontPage() {
     const handlePrev = () => {
         if (animating || offers.length <= 1) return
         setAnimating('prev')
-        setTimeout(() => {
+        animationTimer.current = setTimeout(() => {
             setCurrentIndex((prev) => (prev - 1 + offers.length) % offers.length)
             setAnimating(null)
         }, 300)

@@ -1,42 +1,64 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { MerchantsService } from './merchants.service';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { OnboardMerchantDto, UpdateMerchantStatusDto, UpdateMerchantPlanDto } from './dto/merchant.dto';
+import {
+  OnboardMerchantDto,
+  UpdateMerchantStatusDto,
+  UpdateMerchantPlanDto,
+} from './dto/merchant.dto';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { Roles } from '../../auth/roles.decorator';
+import { RolesGuard } from '../../auth/roles.guard';
 
 @ApiTags('admin/merchants')
 @Controller('admin/merchants')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN')
 export class MerchantsController {
-    constructor(private readonly merchantsService: MerchantsService) { }
+  constructor(private readonly merchantsService: MerchantsService) {}
 
-    @Get()
-    @ApiOperation({ summary: 'List all registered business profiles/merchants' })
-    async listMerchants(@Query('status') status?: string) {
-        return this.merchantsService.listMerchants(status);
-    }
+  @Get()
+  @ApiOperation({ summary: 'List all registered business profiles/merchants' })
+  async listMerchants(@Query('status') status?: string) {
+    return this.merchantsService.listMerchants(status);
+  }
 
-    @Get(':id')
-    @ApiOperation({ summary: 'Get specific merchant details' })
-    async getMerchant(@Param('id') id: string) {
-        return this.merchantsService.getMerchant(id);
-    }
+  @Get(':id')
+  @ApiOperation({ summary: 'Get specific merchant details' })
+  async getMerchant(@Param('id') id: string) {
+    return this.merchantsService.getMerchant(id);
+  }
 
-    @Post('onboard')
-    @ApiOperation({ summary: 'Onboard a new business into the platform' })
-    async onboardBusiness(@Body() body: OnboardMerchantDto) {
-        return this.merchantsService.onboardMerchant(body);
-    }
+  @Post('onboard')
+  @ApiOperation({ summary: 'Onboard a new business into the platform' })
+  async onboardBusiness(@Body() body: OnboardMerchantDto) {
+    return this.merchantsService.onboardMerchant(body);
+  }
 
-    @Patch(':id/status')
-    @ApiOperation({ summary: 'Suspend or Reactivate a merchant account' })
-    async updateStatus(@Param('id') id: string, @Body() body: UpdateMerchantStatusDto) {
-        return this.merchantsService.updateMerchantStatus(id, body.status);
-    }
+  @Patch(':id/status')
+  @ApiOperation({ summary: 'Suspend or Reactivate a merchant account' })
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() body: UpdateMerchantStatusDto,
+  ) {
+    return this.merchantsService.updateMerchantStatus(id, body.status);
+  }
 
-    @Patch(':id/plan')
-    @ApiOperation({ summary: 'Update merchant subscription plan' })
-    async updatePlan(@Param('id') id: string, @Body() body: UpdateMerchantPlanDto) {
-        return this.merchantsService.updateMerchantPlan(id, body.plan);
-    }
+  @Patch(':id/plan')
+  @ApiOperation({ summary: 'Update merchant subscription plan' })
+  async updatePlan(
+    @Param('id') id: string,
+    @Body() body: UpdateMerchantPlanDto,
+  ) {
+    return this.merchantsService.updateMerchantPlan(id, body.plan);
+  }
 }

@@ -6,8 +6,8 @@ import '../styles/auth.css'
 const LoginPage: React.FC = () => {
     const navigate = useNavigate()
     const [isLoading, setIsLoading] = useState(false)
-    const [email, setEmail] = useState('admin@mcomqlinks.com')
-    const [password, setPassword] = useState('password123')
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState<string | null>(null)
 

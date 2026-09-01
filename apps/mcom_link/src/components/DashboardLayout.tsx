@@ -35,8 +35,13 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [profile, setProfile] = useState<{name?: string, logoUrl?: string, ownerName?: string, plan?: string, subscriptionStatus?: string}>({})
 
-    const storedUserStr = localStorage.getItem('user');
-    const storedUser = storedUserStr ? JSON.parse(storedUserStr) : null;
+    let storedUser: { name?: string } | null = null;
+    try {
+        const storedUserStr = localStorage.getItem('user');
+        storedUser = storedUserStr ? JSON.parse(storedUserStr) : null;
+    } catch {
+        storedUser = null;
+    }
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -57,7 +62,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
                         subscriptionStatus: mockStatus || data.subscriptionStatus || 'pending'
                     })
                 }
-            } catch (err) {
+            } catch {
                 // Fallback to local storage if API fails
                 const mockPlan = localStorage.getItem('mock_user_plan')
                 const mockStatus = localStorage.getItem('mock_user_status')

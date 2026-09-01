@@ -259,10 +259,10 @@ export default function OffersPage() {
                                     <td>
                                         <div style={{ display: 'flex', gap: '1rem' }}>
                                             <div title="Scans">
-                                                <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>S:</span> {offer.performance.scans}
+                                                <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>S:</span> {offer.scans ?? offer.performance?.scans ?? 0}
                                             </div>
                                             <div title="Claims">
-                                                <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>C:</span> {offer.performance.claims}
+                                                <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>C:</span> {offer.claims ?? offer.performance?.claims ?? 0}
                                             </div>
                                         </div>
                                     </td>
@@ -334,11 +334,11 @@ export default function OffersPage() {
                             </div>
                             <div>
                                 <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Scans</div>
-                                <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{offer.performance.scans}</div>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{offer.scans ?? offer.performance?.scans ?? 0}</div>
                             </div>
                             <div>
                                 <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Claims</div>
-                                <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{offer.performance.claims}</div>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{offer.claims ?? offer.performance?.claims ?? 0}</div>
                             </div>
                         </div>
 

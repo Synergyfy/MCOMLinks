@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/apiClient'
 import '../styles/auth.css'
@@ -17,6 +17,13 @@ const SignupPage: React.FC = () => {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
+    const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    useEffect(() => {
+        return () => {
+            if (redirectTimer.current) clearTimeout(redirectTimer.current)
+        }
+    }, [])
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -42,12 +49,18 @@ const SignupPage: React.FC = () => {
                 role: 'BUSINESS' 
             })
 
-            // Use the real session data returned from the backend
-            localStorage.setItem('access_token', result.access_token)
-            localStorage.setItem('user', JSON.stringify(result.user))
+            // Use the real session data returned from the backend.
+            // In mock mode the register handler may not return a session, so guard
+            // against writing the literal string "undefined" into localStorage.
+            if (result?.access_token) {
+                localStorage.setItem('access_token', result.access_token)
+            }
+            if (result?.user) {
+                localStorage.setItem('user', JSON.stringify(result.user))
+            }
 
             setSuccess(true)
-            setTimeout(() => {
+            redirectTimer.current = setTimeout(() => {
                 navigate('/dashboard/billing?first_time=true')
             }, 1000)
 

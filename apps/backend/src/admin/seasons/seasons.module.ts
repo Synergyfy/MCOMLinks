@@ -4,9 +4,9 @@ import { SeasonsController } from './seasons.controller';
 import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
-    imports: [PrismaModule],
-    providers: [SeasonsService],
-    controllers: [SeasonsController],
-    exports: [SeasonsService],
+  imports: [PrismaModule],
+  providers: [SeasonsService],
+  controllers: [SeasonsController],
+  exports: [SeasonsService],
 })
-export class SeasonsModule { }
+export class SeasonsModule {}

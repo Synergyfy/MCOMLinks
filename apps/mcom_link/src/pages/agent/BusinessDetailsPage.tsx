@@ -10,6 +10,9 @@ export default function BusinessDetailsPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [newNote, setNewNote] = useState('')
+    // Backend doesn't return logs yet, keeping it as state for now.
+    // Hooks must always be declared before any conditional returns.
+    const [logs, setLogs] = useState<CommLog[]>([])
 
     useEffect(() => {
         const fetchBusinessDetail = async () => {
@@ -51,7 +54,6 @@ export default function BusinessDetailsPage() {
     )
 
     const { business, performance, offers } = businessData
-    const [logs, setLogs] = useState<CommLog[]>([]) // Backend doesn't return logs yet, keeping it as state for now
 
     const handleAddLog = (e: React.FormEvent) => {
         e.preventDefault()
@@ -96,11 +98,11 @@ export default function BusinessDetailsPage() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                                 <span style={{ color: '#94a3b8' }}>Owner:</span>
-                                <span style={{ fontWeight: 700 }}>{business.owner}</span>
+                                <span style={{ fontWeight: 700 }}>{business.ownerName ?? business.owner ?? '—'}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                                 <span style={{ color: '#94a3b8' }}>Contact:</span>
-                                <span style={{ fontWeight: 700 }}>{business.phone}</span>
+                                <span style={{ fontWeight: 700 }}>{business.contactPhone ?? business.phone ?? business.contactEmail ?? '—'}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                                 <span style={{ color: '#94a3b8' }}>Plan:</span>
