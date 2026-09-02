@@ -1,21 +1,50 @@
-import { useState } from 'react';
-import { mockAdData } from '../../mock/ads';
-import type { Ad } from '../../mock/ads';
+import { useState, useEffect } from 'react';
+import { api } from '../../api/apiClient';
 import AdminLayout from '../../components/AdminLayout';
-import '../../styles/ad-approval.css'; // Import the new styles
+import '../../styles/ad-approval.css';
 
 export default function AdApprovalPage() {
-  const [ads, setAds] = useState<Ad[]>(mockAdData);
+  const [ads, setAds] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  const handleStatusChange = (adId: string, newStatus: 'approved' | 'rejected') => {
+  const fetchAds = () => {
+    setLoading(true);
+    api.get<any[]>('/admin/ads')
+      .then((data) => {
+        setAds(data || []);
+        setLoading(false);
+      })
+      .catch(() => {
+        setAds([]);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchAds();
+  }, []);
+
+  const handleStatusChange = async (adId: string, newStatus: 'approved' | 'rejected') => {
+    const previousAds = [...ads];
+    // Optimistic update
     setAds(currentAds =>
       currentAds.map(ad =>
         ad.id === adId ? { ...ad, status: newStatus } : ad
-      ).filter(ad => ad.status === 'pending') // Keep only pending ads in the visible list
+      ).filter(ad => ad.status === 'pending')
     );
+
+    try {
+      await api.patch(`/admin/ads/${adId}/status`, { status: newStatus });
+    } catch (err: any) {
+      // Revert state on network error
+      setAds(previousAds);
+      alert(`Failed to update ad status to ${newStatus}. Reverting change.`);
+    }
   };
 
+
   const pendingAds = ads.filter(ad => ad.status === 'pending');
+
 
   return (
     <AdminLayout title="Ad Approvals">
@@ -24,7 +53,10 @@ export default function AdApprovalPage() {
         <p className="admin-page-subtitle">Review and approve or reject advertisements submitted by businesses.</p>
 
         <div className="ad-approval-container">
-          {pendingAds.length > 0 ? (
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>Loading ad submission queue...</div>
+          ) : pendingAds.length > 0 ? (
+
             <div className="ad-approval-table-wrapper">
               <table className="ad-approval-table">
                 <thead>
@@ -41,17 +73,22 @@ export default function AdApprovalPage() {
                       <tr key={ad.id}>
                         <td>
                           <div className="ad-creative-cell">
-                            <div className="ad-creative-placeholder">
-                              {ad.imgPlaceholder}
+                            <div className="ad-creative-placeholder" style={{ overflow: 'hidden', padding: 0 }}>
+                              {ad.imageUrl ? (
+                                <img src={ad.imageUrl} alt={ad.headline || ad.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                ad.imgPlaceholder || '🎨'
+                              )}
                             </div>
                           </div>
                         </td>
                         <td>
                           <div className="ad-details">
-                            <div className="title" style={{ fontWeight: 800 }}>{ad.title}</div>
-                            <div className="category" style={{ fontSize: '0.75rem' }}>{ad.category} • {ad.business}</div>
+                            <div className="title" style={{ fontWeight: 800 }}>{ad.headline || ad.title}</div>
+                            <div className="category" style={{ fontSize: '0.75rem' }}>{ad.placement || ad.category || 'General'} • {ad.businessName || ad.business}</div>
                           </div>
                         </td>
+
                         <td>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             <select 

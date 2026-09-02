@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import AdminLayout from '../../components/AdminLayout';
-import { getHomeSettings, saveHomeSettings, resetHomeSettings } from '../../mock/homeStore';
-import type { HomeSettings } from '../../mock/homeStore';
+import { api } from '../../api/apiClient';
 
 type SectionId = 'navbar' | 'hero' | 'marquee' | 'features' | 'how-it-works' | 'final-cta' | 'footer';
 
@@ -15,8 +14,36 @@ const SECTIONS: { id: SectionId; label: string; icon: string; color: string }[] 
     { id: 'footer', label: 'Footer', icon: '📋', color: '#475569' },
 ];
 
+const DEFAULT_CMS_CONTENT = {
+    navLogoMain: 'MCOMQ',
+    navLogoSub: '.LINKS',
+    heroBadgeText: 'Rotator Marketing Engine',
+    heroTitle: 'Transforming High Streets into Digital Billboards',
+    heroSubtitle: 'Turn physical foot traffic into customer acquisition through automated, sequential offer rotation and seasonal intelligence.',
+    heroPrimaryCta: 'Get Started Free',
+    heroSecondaryCta: 'Explore Storefronts',
+    featuresBadge: 'Why MCOM Links',
+    featuresTitle: 'Built for High Street Commerce',
+    featuresTitleGradient: 'Commerce',
+    featuresDesc: 'High performance rotator technology designed for foot traffic conversion.',
+    featuresList: [
+        { title: 'Sequential Rotator Logic', desc: 'Fairly distribute exposure across local merchants.' },
+        { title: 'Seasonal Automation', desc: 'Schedule rules that automatically activate themed offers.' },
+        { title: 'High-Street Commerce', desc: 'Turn physical storefronts into interactive digital panels.' }
+    ],
+    howItWorksBadge: 'Simple 3-Step Process',
+    howItWorksTitle: 'How Rotator Tech Works',
+    howItWorksTitleGradient: 'Works',
+    steps: [
+        { title: 'Scan Code', desc: 'Consumer scans QR code on shop window.' },
+        { title: 'View Offer', desc: 'Rotator engine displays next scheduled deal.' },
+        { title: 'Redeem', desc: 'Customer claims deal at storefront.' }
+    ],
+    marqueeItems: ['Automated Rotator System', 'Seasonal Campaigns', 'High-Street Growth', 'Real-Time Analytics']
+};
+
 export default function AdminHomePageCMS() {
-    const [settings, setSettings] = useState<HomeSettings | null>(null);
+    const [settings, setSettings] = useState<any>(null);
     const [activeSection, setActiveSection] = useState<SectionId>('hero');
     const [saveStatus, setSaveStatus] = useState<string>('');
     const [hasChanges, setHasChanges] = useState(false);
@@ -28,22 +55,22 @@ export default function AdminHomePageCMS() {
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
     useEffect(() => {
-        setSettings(getHomeSettings());
+        api.get<any>('/admin/cms')
+            .then(data => setSettings(data))
+            .catch(() => setSettings(DEFAULT_CMS_CONTENT));
     }, []);
 
-    const handleChange = useCallback((field: keyof HomeSettings, value: any) => {
-        setSettings(prev => {
+    const handleChange = useCallback((field: any, value: any) => {
+        setSettings((prev: any) => {
             if (!prev) return prev;
             const next = { ...prev, [field]: value };
             
-            // Sync gradient highlight word with its title to keep position
             if (typeof field === 'string' && field.endsWith('Gradient')) {
-                const titleField = field.replace('Gradient', '') as keyof HomeSettings;
+                const titleField = field.replace('Gradient', '');
                 const oldGradient = prev[field] as string;
                 const oldTitle = prev[titleField] as string;
                 
                 if (typeof oldTitle === 'string' && oldGradient && oldTitle.includes(oldGradient)) {
-                    // Update the title field as well, replacing exactly where the old word was
                     (next as any)[titleField] = oldTitle.replace(oldGradient, value);
                 }
             }
@@ -54,19 +81,19 @@ export default function AdminHomePageCMS() {
     }, []);
 
     const handleFeatureChange = useCallback((index: number, field: 'title' | 'desc', value: string) => {
-        setSettings(prev => {
+        setSettings((prev: any) => {
             if (!prev) return prev;
-            const newList = [...prev.featuresList];
+            const newList = [...(prev.featuresList || prev.features || [])];
             newList[index] = { ...newList[index], [field]: value };
-            return { ...prev, featuresList: newList };
+            return { ...prev, featuresList: newList, features: newList };
         });
         setHasChanges(true);
     }, []);
 
     const handleStepChange = useCallback((index: number, field: 'title' | 'desc', value: string) => {
-        setSettings(prev => {
+        setSettings((prev: any) => {
             if (!prev) return prev;
-            const newSteps = [...prev.steps];
+            const newSteps = [...(prev.steps || [])];
             newSteps[index] = { ...newSteps[index], [field]: value };
             return { ...prev, steps: newSteps };
         });
@@ -74,26 +101,32 @@ export default function AdminHomePageCMS() {
     }, []);
 
     const handleMarqueeChange = useCallback((index: number, value: string) => {
-        setSettings(prev => {
+        setSettings((prev: any) => {
             if (!prev) return prev;
-            const items = [...prev.marqueeItems];
+            const items = [...(prev.marqueeItems || [])];
             items[index] = value;
             return { ...prev, marqueeItems: items };
         });
         setHasChanges(true);
     }, []);
 
-    const handlePublish = () => {
+    const handlePublish = async () => {
         if (!settings) return;
-        saveHomeSettings(settings);
-        setHasChanges(false);
-        setSaveStatus('Published!');
-        setPreviewKey(k => k + 1);
-        setTimeout(() => setSaveStatus(''), 3000);
+        try {
+            await api.put('/admin/cms', settings);
+            localStorage.setItem('mcom_cms_settings', JSON.stringify(settings));
+            setHasChanges(false);
+            setSaveStatus('Published Live!');
+            setPreviewKey(k => k + 1);
+            setTimeout(() => setSaveStatus(''), 3000);
+        } catch (err: any) {
+            setSaveStatus('Error saving CMS settings');
+        }
     };
 
+
     const handleReset = () => {
-        const defaults = resetHomeSettings();
+        const defaults = DEFAULT_CMS_CONTENT;
         setSettings(defaults);
         setHasChanges(false);
         setPreviewKey(k => k + 1);
@@ -104,9 +137,10 @@ export default function AdminHomePageCMS() {
 
     const handleRefreshPreview = () => {
         if (!settings) return;
-        saveHomeSettings(settings);
+        localStorage.setItem('mcom_cms_settings', JSON.stringify(settings));
         setPreviewKey(k => k + 1);
     };
+
 
     if (!settings) return <AdminLayout title="Homepage CMS"><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', color: '#94a3b8' }}>Loading CMS Engine...</div></AdminLayout>;
 
@@ -172,7 +206,7 @@ export default function AdminHomePageCMS() {
                     <p style={{ color: '#64748b', fontSize: '0.8rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
                         These items scroll continuously across the screen between the hero and features sections.
                     </p>
-                    {settings.marqueeItems.map((item, i) => (
+                    {settings.marqueeItems.map((item: string, i: number) => (
                         <FieldGroup key={i} label={`Item ${i + 1}`}>
                             <input className="cms-input" value={item} onChange={e => handleMarqueeChange(i, e.target.value)} />
                         </FieldGroup>
@@ -196,7 +230,7 @@ export default function AdminHomePageCMS() {
                         <textarea className="cms-input cms-textarea" rows={2} value={settings.featuresDesc} onChange={e => handleChange('featuresDesc', e.target.value)} />
                     </FieldGroup>
                     <Divider label="Feature Cards" />
-                    {settings.featuresList.map((f, i) => (
+                    {settings.featuresList.map((f: any, i: number) => (
                         <div key={i} className="cms-card-block">
                             <div className="cms-card-block-header">
                                 <span className="cms-card-block-number">{i + 1}</span>
@@ -224,7 +258,8 @@ export default function AdminHomePageCMS() {
                         <input className="cms-input" value={settings.howItWorksTitleGradient} onChange={e => handleChange('howItWorksTitleGradient', e.target.value)} />
                     </FieldGroup>
                     <Divider label="Process Steps" />
-                    {settings.steps.map((s, i) => (
+                    {settings.steps.map((s: any, i: number) => (
+
                         <div key={i} className="cms-card-block">
                             <div className="cms-card-block-header">
                                 <span className="cms-card-block-number">{String(i + 1).padStart(2, '0')}</span>

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import AgentLayout from '../../components/AgentLayout'
 import { api } from '../../api/apiClient'
-import { type CommLog } from '../../mock/agents'
+
+
 
 export default function BusinessDetailsPage() {
     const { id } = useParams()
@@ -12,13 +13,24 @@ export default function BusinessDetailsPage() {
     const [newNote, setNewNote] = useState('')
     // Backend doesn't return logs yet, keeping it as state for now.
     // Hooks must always be declared before any conditional returns.
-    const [logs, setLogs] = useState<CommLog[]>([])
+    const [logs, setLogs] = useState<any[]>([])
+
+    const fetchCommLogs = async () => {
+        if (!id) return;
+        try {
+            const comms = await api.get<any[]>(`/agent/comm/${id}`);
+            setLogs(comms || []);
+        } catch {
+            setLogs([]);
+        }
+    };
 
     useEffect(() => {
         const fetchBusinessDetail = async () => {
             try {
                 const data = await api.get<any>(`/agent/business/${id}`)
                 setBusinessData(data)
+                fetchCommLogs();
             } catch (err) {
                 console.error('Failed to fetch business details:', err)
                 setError('Failed to load business details.')
@@ -55,21 +67,31 @@ export default function BusinessDetailsPage() {
 
     const { business, performance, offers } = businessData
 
-    const handleAddLog = (e: React.FormEvent) => {
+    const handleAddLog = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!newNote.trim()) return
+        if (!newNote.trim() || !id) return
 
-        const newLog: CommLog = {
-            id: `log-${Date.now()}`,
-            businessId: id || '',
-            date: new Date().toISOString(),
-            note: newNote,
-            type: 'meeting'
+        try {
+            await api.post('/agent/comm', {
+                businessId: id,
+                notes: newNote,
+                type: 'meeting',
+            });
+            setNewNote('');
+            fetchCommLogs();
+        } catch (err: any) {
+            const fallback: any = {
+                id: `log-${Date.now()}`,
+                businessId: id,
+                createdAt: new Date().toISOString(),
+                notes: newNote,
+                type: 'meeting'
+            };
+            setLogs([fallback, ...logs]);
+            setNewNote('');
         }
-
-        setLogs([newLog, ...logs])
-        setNewNote('')
     }
+
 
     const handleAddOffer = (e: React.FormEvent) => {
         e.preventDefault()
@@ -145,11 +167,12 @@ export default function BusinessDetailsPage() {
                             {logs.map(log => (
                                 <div key={log.id} style={{ paddingLeft: '1rem', borderLeft: '3px solid #e2e8f0' }}>
                                     <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.25rem', fontWeight: 700 }}>
-                                        {new Date(log.date).toLocaleDateString()} — {log.type.toUpperCase()}
+                                        {new Date(log.createdAt || log.date || Date.now()).toLocaleDateString()} — {(log.type || 'note').toUpperCase()}
                                     </div>
                                     <p style={{ margin: 0, fontSize: '0.85rem', lineHeight: '1.5', color: '#334155' }}>
-                                        {log.note}
+                                        {log.notes || log.note}
                                     </p>
+
                                 </div>
                             ))}
                         </div>

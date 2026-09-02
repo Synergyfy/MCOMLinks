@@ -21,24 +21,40 @@ export class HealthService {
     });
   }
 
-  getEngineStatus() {
-    // Simulating the actual atomic persistence layer returns as per UI requirements
+  async getEngineStatus() {
+    const start = Date.now();
+    let dbStatus = 'CONNECTED';
+    let dbStatusType = 'optimal';
+    try {
+      await this.prisma.$queryRaw`SELECT 1`;
+    } catch {
+      dbStatus = 'DISCONNECTED';
+      dbStatusType = 'error';
+    }
+    const latency = Date.now() - start;
+
     return [
       {
-        id: 'redis',
-        label: 'Redis Pointers',
-        value: 'CONNECTED',
-        status: 'optimal',
+        id: 'database',
+        label: 'Database Connection',
+        value: dbStatus,
+        status: dbStatusType,
       },
-      { id: 'sync', label: 'Sync Latency', value: '12ms', status: 'optimal' },
+      {
+        id: 'sync',
+        label: 'DB Query Latency',
+        value: `${latency}ms`,
+        status: latency < 100 ? 'optimal' : 'warning',
+      },
       {
         id: 'backup',
-        label: 'Data Backups',
-        value: 'SECURE',
+        label: 'Rotator Persistence',
+        value: 'ACTIVE',
         status: 'optimal',
       },
     ];
   }
+
 
   async logEvent(dto: CreateSystemLogDto) {
     return this.prisma.systemLog.create({

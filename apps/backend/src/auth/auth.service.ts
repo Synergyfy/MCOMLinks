@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   UnauthorizedException,
@@ -64,6 +65,15 @@ export class AuthService {
 
   async login(loginDto: LoginDto) {
     const user = await this.validateUser(loginDto);
+
+    // Email/password login is reserved for ADMIN accounts. All other roles
+    // (BUSINESS, AGENT) must authenticate through the Central Hub Solution SSO.
+    if (user.role !== 'ADMIN') {
+      throw new ForbiddenException(
+        'Non-admin accounts must sign in with Central Hub Solution',
+      );
+    }
+
     const payload = { email: user.email, sub: user.id, role: user.role };
 
     return {

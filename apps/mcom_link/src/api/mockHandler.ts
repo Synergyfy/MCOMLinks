@@ -2,7 +2,7 @@ import { mockLocations } from '../mock/locations';
 import { mockOffers } from '../mock/offers';
 import { mockBusiness, mockMetrics } from '../mock/business';
 import { mockSeasons, systemLogs } from '../mock/admin';
-import { mockPlans } from '../mock/plans';
+import { mockPlans, mockPlanSchema } from '../mock/plans';
 
 const delay = (ms = 200) => new Promise(r => setTimeout(r, ms));
 
@@ -402,6 +402,124 @@ const routes: MockRoute[] = [
         }),
     },
 
+    // --- CENTRAL HUB SSO ---
+    {
+        pattern: '/auth/mcom/login',
+        method: 'GET',
+        handler: () => {
+            const state = 'mock-state-' + Date.now();
+            return {
+                authorizeUrl: `${window.location.origin}/auth/mcom/callback?code=mock-code-${Date.now()}&state=${state}`,
+                state,
+            };
+        },
+    },
+    {
+        pattern: '/auth/mcom/callback',
+        method: 'POST',
+        handler: (_params, body) => {
+            if (body?.code && body?.state) {
+                return {
+                    access_token: 'mock-jwt-token-' + Date.now(),
+                    user: {
+                        id: 'mock-central-user',
+                        email: 'business@central.mcomsolutions.com',
+                        name: 'Central Business',
+                        role: 'BUSINESS',
+                        mcomUserId: 'mock-central-user-id',
+                        mcomRole: 'MEMBER',
+                        permissions: { canAccess_links: true },
+                        membershipLevel: 'Gold',
+                        membershipStatus: 'active',
+                    },
+                };
+            }
+            throw new Error('400: Missing code or state');
+        },
+    },
+
+    // --- ADMIN PLANS (MCOM Links plan studio) ---
+    {
+        pattern: '/admin/plans',
+        method: 'GET',
+        handler: () => mockPlans,
+    },
+    {
+        pattern: '/admin/plans/schema',
+        method: 'GET',
+        handler: () => ({
+            quotas: [
+                { key: 'maxActiveCampaigns', label: 'Max Active Campaigns', type: 'number', unlimited: true },
+                { key: 'maxOffers', label: 'Max Offers in Rotation', type: 'number', unlimited: true },
+                { key: 'maxLocations', label: 'Max Network Locations', type: 'number', unlimited: true },
+                { key: 'allowNearbyExpansion', label: 'Enable Nearby Expansion Layer', type: 'boolean' },
+                { key: 'allowNationalNetwork', label: 'Enable National Network Layer', type: 'boolean' },
+            ],
+            featureFlags: [
+                { key: 'priorityBoost', label: 'Priority Boost (Star Placement)', type: 'boolean' },
+                { key: 'advancedAnalytics', label: 'Advanced Analytics Dashboard', type: 'boolean' },
+                { key: 'customBranding', label: 'Custom Brand Colors', type: 'boolean' },
+                { key: 'allowThirdPartyPromotion', label: 'Third-Party Promotion', type: 'boolean' },
+                { key: 'allowAutoRollover', label: 'Auto Rollover Into Next Season', type: 'boolean' },
+                { key: 'allowExpoAccess', label: 'Expo Access', type: 'boolean' },
+            ],
+        }),
+    },
+    {
+        pattern: '/admin/plans',
+        method: 'POST',
+        handler: (_params, body) => ({
+            id: 'plan-' + Date.now(),
+            name: body?.name || 'New Plan',
+            description: body?.description,
+            tagline: body?.tagline,
+            bestFor: body?.bestFor,
+            isFree: body?.isFree ?? false,
+            monthlyPrice: body?.isFree ? 0 : (body?.monthlyPrice || 0),
+            quarterlyPrice: body?.isFree ? 0 : (body?.quarterlyPrice || 0),
+            annualPrice: body?.isFree ? 0 : (body?.annualPrice || 0),
+            features: body?.features || [],
+            limitations: body?.limitations || [],
+            configuration: body?.configuration || { quotas: {}, featureFlags: {} },
+            isActive: body?.isActive ?? true,
+            isDefault: body?.isDefault ?? false,
+            type: body?.type || 'STANDARD',
+            trialDuration: body?.trialDuration,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        }),
+    },
+    {
+        pattern: '/admin/plans/:id',
+        method: 'GET',
+        handler: (params) => {
+            const plan = mockPlans.find(p => p.id === params.id);
+            if (!plan) throw new Error('404: Resource not found');
+            return plan;
+        },
+    },
+    {
+        pattern: '/admin/plans/:id',
+        method: 'PATCH',
+        handler: (params, body) => {
+            const existing = mockPlans.find(p => p.id === params.id) || {};
+            return {
+                ...existing,
+                ...(body || {}),
+                id: params.id,
+                updatedAt: new Date().toISOString(),
+            };
+        },
+    },
+    {
+        pattern: '/admin/plans/:id',
+        method: 'DELETE',
+        handler: (params) => ({
+            success: true,
+            message: `Plan ${params.id} archived`,
+        }),
+    },
+
     // --- ADMIN MERCHANTS (list) ---
     {
         pattern: '/admin/merchants',
@@ -474,6 +592,11 @@ const routes: MockRoute[] = [
     },
 
     // --- MCOM ECOSYSTEM: PLANS & PURCHASE ---
+    {
+        pattern: '/api/v1/plans/schema',
+        method: 'GET',
+        handler: () => mockPlanSchema,
+    },
     {
         pattern: '/api/v1/plans',
         method: 'GET',

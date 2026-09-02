@@ -64,6 +64,35 @@ export class CreatePlanDto {
   @IsOptional()
   features?: string[];
 
+  @ApiPropertyOptional({
+    example: ['No custom domain support', 'Standard visibility only'],
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  limitations?: string[];
+
+  @ApiPropertyOptional({
+    example: 'Grow beyond your storefront',
+    description: 'Short card tagline shown on pricing',
+  })
+  @IsString()
+  @IsOptional()
+  tagline?: string;
+
+  @ApiPropertyOptional({ example: 'Businesses ready to scale' })
+  @IsString()
+  @IsOptional()
+  bestFor?: string;
+
+  @ApiPropertyOptional({
+    default: false,
+    description: 'Free plans force all prices to 0',
+  })
+  @IsBoolean()
+  @IsOptional()
+  isFree?: boolean;
+
   @ApiPropertyOptional({ type: PlanConfigurationDto })
   @IsObject()
   @IsOptional()

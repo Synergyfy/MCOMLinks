@@ -1,28 +1,62 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../../components/AdminLayout';
+import { api } from '../../api/apiClient';
 import { getPromoSettings, savePromoSettings } from '../../mock/promoStore';
-import type { PromoSettings } from '../../mock/promoStore';
 
 export default function AdminPromoControl() {
-    const [settings, setSettings] = useState<PromoSettings | null>(null);
+    const [settings, setSettings] = useState<any>(null);
     const [saveStatus, setSaveStatus] = useState<string>('');
     const [previewMode, setPreviewMode] = useState<boolean>(false);
 
     useEffect(() => {
-        setSettings(getPromoSettings());
+        api.get<any>('/admin/promo')
+            .then(data => {
+                setSettings({
+                    promoActive: data.isActive,
+                    promoStartDate: data.startDate?.split('T')[0] || '2026-01-01',
+                    promoEndDate: data.endDate?.split('T')[0] || '2026-12-31',
+                    promoCTALink: data.ctaLink || '/pricing',
+                    homepagePromoTitle: data.bannerText || '',
+                    showPromoTitle: true,
+                    homepagePromoDesc: 'Exclusive platform offer',
+                    showPromoDesc: true,
+                    homepagePromoCTAText: data.ctaText || 'Upgrade Now',
+                    showPromoCTA: true,
+                    animationStyle: 'bounce',
+                    adminHtmlEmbed: '',
+                    backgroundColor: data.backgroundColor || '#2563eb',
+                    textColor: data.textColor || '#ffffff',
+                });
+            })
+            .catch(() => setSettings(getPromoSettings()));
     }, []);
 
-    const handleChange = (field: keyof PromoSettings, value: any) => {
+    const handleChange = (field: string, value: any) => {
         if (!settings) return;
         setSettings({ ...settings, [field]: value });
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!settings) return;
-        savePromoSettings(settings);
-        setSaveStatus('Settings saved successfully!');
-        setTimeout(() => setSaveStatus(''), 3000);
+        try {
+            await api.put('/admin/promo', {
+                bannerText: settings.homepagePromoTitle,
+                ctaText: settings.homepagePromoCTAText,
+                ctaLink: settings.promoCTALink,
+                backgroundColor: settings.backgroundColor || '#2563eb',
+                textColor: settings.textColor || '#ffffff',
+                isActive: settings.promoActive,
+                startDate: settings.promoStartDate,
+                endDate: settings.promoEndDate,
+            });
+            savePromoSettings(settings);
+            setSaveStatus('Settings saved successfully live to database!');
+            setTimeout(() => setSaveStatus(''), 3000);
+        } catch (err: any) {
+            setSaveStatus('Error saving promo settings');
+        }
     };
+
 
     if (!settings) return <AdminLayout title="Promo Control"><p>Loading...</p></AdminLayout>;
 

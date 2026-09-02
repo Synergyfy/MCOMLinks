@@ -113,6 +113,21 @@ export interface BusinessProfile {
     offers: string[];
 }
 
+// Session user stored in localStorage. Includes Central Hub SSO fields when the
+// user authenticated via MCOM Solutions.
+export interface SessionUser {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+    postalCode?: string;
+    mcomUserId?: string;
+    mcomRole?: string;
+    permissions?: Record<string, boolean>;
+    membershipLevel?: string;
+    membershipStatus?: string;
+}
+
 // MCOM Ecosystem: centrally-managed plan (Plan CRUD & centralized payments)
 export type BillingCycle = 'monthly' | 'quarterly' | 'annual'
 export type PaymentProvider = 'stripe' | 'paypal' | 'wallet'
@@ -122,10 +137,14 @@ export interface Plan {
     id: string
     name: string
     description?: string
+    tagline?: string
+    bestFor?: string
+    isFree?: boolean
     monthlyPrice: number
     quarterlyPrice: number
     annualPrice: number
     features: string[]
+    limitations?: string[]
     configuration: {
         quotas: Record<string, number | boolean>
         featureFlags: Record<string, boolean>

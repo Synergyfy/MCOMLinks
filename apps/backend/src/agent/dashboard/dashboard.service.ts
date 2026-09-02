@@ -168,11 +168,19 @@ export class AgentDashboardService {
       select: { id: true, businessName: true, status: true },
     });
 
+    // Pre-group offers by businessName to avoid O(M*N) array scans
+    const offersByBusinessMap = new Map<string, any[]>();
+    allOffers.forEach((o: any) => {
+      const list = offersByBusinessMap.get(o.businessName) || [];
+      list.push(o);
+      offersByBusinessMap.set(o.businessName, list);
+    });
+
+
     // Build leaderboard from business data
     const leaderboard = businesses.map((biz: any, index: number) => {
-      const relevantOffers = allOffers.filter(
-        (o: any) => o.businessName === biz.name,
-      );
+      const relevantOffers = offersByBusinessMap.get(biz.name) || [];
+
       const totalScans = relevantOffers.reduce(
         (sum: number, o: any) => sum + (scanMap[o.id] || 0),
         0,

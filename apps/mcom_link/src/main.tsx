@@ -18,7 +18,8 @@ import RedeemPage from './pages/RedeemPage.tsx'
 import ConfirmationPage from './pages/ConfirmationPage.tsx'
 import FallbackPage from './pages/FallbackPage.tsx'
 import LoginPage from './pages/LoginPage.tsx'
-import SignupPage from './pages/SignupPage.tsx'
+import AdminLoginPage from './pages/AdminLoginPage.tsx'
+import McomCallbackPage from './pages/McomCallbackPage.tsx'
 import PricingPage from './pages/PricingPage.tsx'
 
 // Dashboard Pages
@@ -60,7 +61,8 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/pricing/promo" element={<PromoPricingPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/admin/login" element={<AdminLoginPage />} />
+        <Route path="/auth/mcom/callback" element={<McomCallbackPage />} />
 
         {/* Rotator Storefront Routes (Dynamic) */}
         <Route path="/r/:locationId" element={<StorefrontPage />} />
@@ -71,12 +73,12 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/confirmed/:offerId" element={<ConfirmationPage />} />
 
         {/* Business Owner Dashboard Routes */}
-        <Route path="/dashboard" element={<ProtectedRoute roles={['BUSINESS']}><DashboardHome /></ProtectedRoute>} />
-        <Route path="/dashboard/offers" element={<ProtectedRoute roles={['BUSINESS']}><OffersPage /></ProtectedRoute>} />
-        <Route path="/dashboard/analytics" element={<ProtectedRoute roles={['BUSINESS']}><AnalyticsPage /></ProtectedRoute>} />
-        <Route path="/dashboard/support" element={<ProtectedRoute roles={['BUSINESS']}><SupportPage /></ProtectedRoute>} />
-        <Route path="/dashboard/settings" element={<ProtectedRoute roles={['BUSINESS']}><SettingsPage /></ProtectedRoute>} />
-        <Route path="/dashboard/billing" element={<ProtectedRoute roles={['BUSINESS']}><BillingPage /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute roles={['BUSINESS']} requireLinksAccess><DashboardHome /></ProtectedRoute>} />
+        <Route path="/dashboard/offers" element={<ProtectedRoute roles={['BUSINESS']} requireLinksAccess><OffersPage /></ProtectedRoute>} />
+        <Route path="/dashboard/analytics" element={<ProtectedRoute roles={['BUSINESS']} requireLinksAccess><AnalyticsPage /></ProtectedRoute>} />
+        <Route path="/dashboard/support" element={<ProtectedRoute roles={['BUSINESS']} requireLinksAccess><SupportPage /></ProtectedRoute>} />
+        <Route path="/dashboard/settings" element={<ProtectedRoute roles={['BUSINESS']} requireLinksAccess><SettingsPage /></ProtectedRoute>} />
+        <Route path="/dashboard/billing" element={<ProtectedRoute roles={['BUSINESS']} requireLinksAccess><BillingPage /></ProtectedRoute>} />
 
         {/* Agent Platform Routes */}
         <Route path="/agent" element={<ProtectedRoute roles={['AGENT']}><AgentDashboard /></ProtectedRoute>} />

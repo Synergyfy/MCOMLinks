@@ -128,8 +128,27 @@ export default function OffersPage() {
                 payload.leadDestination = newOffer.redemptionInstructions;
             }
 
+            // Client-side validation matching backend DTO rules
+            const start = new Date(newOffer.startDate || Date.now());
+            const end = new Date(newOffer.endDate || Date.now());
+            if (end <= start) {
+                alert("Validation Error: End Date must be after Start Date.");
+                return;
+            }
+
+
+            if ((newOffer.exposureType === 'hyperlocal' || newOffer.exposureType === 'nearby') && newOffer.targetPostcode) {
+                const postcodeClean = newOffer.targetPostcode.trim().toUpperCase();
+                const isValidUkPostcode = /^[A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2}$/i.test(postcodeClean);
+                if (!isValidUkPostcode) {
+                    alert("Validation Error: Please enter a valid UK postcode format (e.g. W1F 0AA).");
+                    return;
+                }
+            }
+
             // Submit for approval
             await api.post('/dashboard/offers', payload)
+
 
             alert("Offer submitted successfully! It is now pending approval from our administration team. Once approved, it will automatically go live in the rotator.")
 

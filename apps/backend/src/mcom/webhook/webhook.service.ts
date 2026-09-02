@@ -30,18 +30,39 @@ export class WebhookService {
       .findUnique({ where: { id: data.externalPlanId } })
       .catch(() => null);
 
-    await this.prisma.businessProfile.update({
+    const planName = localPlan?.name || data.packageName || data.planName || 'Active';
+    await this.prisma.businessProfile.upsert({
       where: { userId: user.id },
-      data: {
-        activePlanId: localPlan?.id || null,
-        plan: localPlan?.name || 'Active',
+      create: {
+        userId: user.id,
+        name: user.name || 'My Business',
+        description: 'Business Profile',
+        contactEmail: user.email,
+        activePlanId: localPlan?.id || data.externalPlanId || null,
+        plan: planName,
+        planExpiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
+        subscriptionStatus: 'active',
+      },
+      update: {
+        activePlanId: localPlan?.id || data.externalPlanId || null,
+        plan: planName,
         planExpiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
         subscriptionStatus: 'active',
       },
     });
+
+    let currentPerms: Record<string, any> = {};
+    try {
+      currentPerms = JSON.parse(user.mcomPermissions || '{}');
+    } catch {}
+    currentPerms.canAccess_links = true;
+
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { autoRenew: true },
+      data: {
+        autoRenew: true,
+        mcomPermissions: JSON.stringify(currentPerms),
+      },
     });
   }
 

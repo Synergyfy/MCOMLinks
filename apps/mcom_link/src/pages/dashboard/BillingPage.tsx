@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
+import StripeCheckoutModal from '../../components/StripeCheckoutModal'
 import { api } from '../../api/apiClient'
 import type { BillingCycle, Plan, PurchasedPackage } from '../../types'
 
@@ -13,8 +14,6 @@ export default function BillingPage() {
     const [showUpgradeModal, setShowUpgradeModal] = useState(false)
     const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
     const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly')
-    const [processing, setProcessing] = useState(false)
-    const [error, setError] = useState<string | null>(null)
     const [packageInfo, setPackageInfo] = useState<PurchasedPackage | null>(null)
 
     useEffect(() => {
@@ -26,6 +25,13 @@ export default function BillingPage() {
                 ])
                 if (settingsData?.plan) setPlan(settingsData.plan)
                 if (settingsData?.subscriptionStatus) setBillingStatus(settingsData.subscriptionStatus)
+                if (settingsData?.planExpiresAt) {
+                    setPackageInfo((prev) => ({
+                        ...(prev || {}),
+                        expiresAt: settingsData.planExpiresAt,
+                        planName: settingsData.plan,
+                    } as any))
+                }
                 if (Array.isArray(plansData)) setPlans(plansData)
             } catch (err) {
                 console.error('Failed to load billing data:', err)
@@ -49,37 +55,22 @@ export default function BillingPage() {
         setShowPaymentModal(true)
     }
 
-    const handleConfirmPayment = async () => {
-        if (!selectedPlan) return
-        setProcessing(true)
-        setError(null)
+    const handlePaymentSuccess = (pkg: any) => {
+        setPackageInfo(pkg)
+        const updatedPlan = selectedPlan?.name || pkg?.packageName || pkg?.planName || 'Active'
+        setPlan(updatedPlan)
+        setBillingStatus('active')
+        setShowPaymentModal(false)
+        setSelectedPlan(null)
         try {
-            // 1. Initiate the purchase through MCOM Central (Merchant of Record)
-            const initiated = await api.post<any>('/api/v1/mcom/packages/purchase/initiate', {
-                externalPlanId: selectedPlan.id,
-                billingCycle,
-                provider: 'stripe',
-            })
-
-            // 2. Confirm. In this pass we use a simple in-app modal (no Stripe
-            // Elements); the returned clientSecret identifies the payment intent.
-            const confirmed = await api.post<any>('/api/v1/mcom/packages/purchase/confirm', {
-                externalPlanId: selectedPlan.id,
-                billingCycle,
-                provider: 'stripe',
-                paymentIntentId: initiated?.clientSecret || 'mock_payment_' + Date.now(),
-            })
-
-            setPackageInfo(confirmed.package)
-            setPlan(selectedPlan.name)
-            setBillingStatus('active')
-            setShowPaymentModal(false)
-            window.dispatchEvent(new CustomEvent('profile-updated'))
-        } catch (err: any) {
-            setError(err.message || 'Payment failed. Please try again.')
-        } finally {
-            setProcessing(false)
-        }
+            const stored = localStorage.getItem('user')
+            if (stored) {
+                const u = JSON.parse(stored)
+                u.permissions = { ...(u.permissions || {}), canAccess_links: true }
+                localStorage.setItem('user', JSON.stringify(u))
+            }
+        } catch {}
+        window.dispatchEvent(new CustomEvent('profile-updated'))
     }
 
     const invoices = [
@@ -210,12 +201,6 @@ export default function BillingPage() {
                             </div>
                             <button className="db-btn db-btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>Change Payment Method</button>
                         </div>
-
-                        {error && (
-                            <div style={{ marginTop: '1rem', padding: '1rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.75rem', color: '#dc2626', fontSize: '0.85rem', fontWeight: 600 }}>
-                                {error}
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
@@ -284,35 +269,16 @@ export default function BillingPage() {
                 </div>
             )}
 
-            {/* Payment Confirmation Modal (simple in-app flow) */}
-            {showPaymentModal && (
-                <div className="db-modal-overlay" onClick={() => !processing && setShowPaymentModal(false)}>
-                    <div className="db-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px', textAlign: 'center' }}>
-                        <div className="db-modal-header" style={{ justifyContent: 'center' }}>
-                            <h2 className="db-card-title">Complete Your Subscription</h2>
-                        </div>
-                        <div className="db-modal-content" style={{ padding: '2rem' }}>
-                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>💳</div>
-                            {selectedPlan && (
-                                <p style={{ fontWeight: 600, marginBottom: '1.5rem' }}>
-                                    You are subscribing to <b>{selectedPlan.name}</b> ({billingCycle}) for <b>£{priceFor(selectedPlan).toFixed(2)}</b>{cycleLabel}.
-                                </p>
-                            )}
-                            {error && (
-                                <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.5rem', color: '#dc2626', fontSize: '0.8rem' }}>
-                                    {error}
-                                </div>
-                            )}
-                            <button
-                                onClick={handleConfirmPayment}
-                                disabled={processing}
-                                className="db-btn db-btn-primary" style={{ width: '100%', padding: '1.25rem', justifyContent: 'center', fontSize: '1.1rem' }}>
-                                {processing ? 'Processing...' : 'Pay & Activate'}
-                            </button>
-                            <button className="db-btn db-btn-ghost" onClick={() => setShowPaymentModal(false)} disabled={processing} style={{ width: '100%', marginTop: '1rem', justifyContent: 'center' }}>Cancel</button>
-                        </div>
-                    </div>
-                </div>
+            {/* Payment Confirmation Modal (Stripe Elements via MCOM Solutions) */}
+            {showPaymentModal && selectedPlan && (
+                <StripeCheckoutModal
+                    plan={selectedPlan}
+                    billingCycle={billingCycle}
+                    price={priceFor(selectedPlan)}
+                    cycleLabel={cycleLabel}
+                    onClose={() => setShowPaymentModal(false)}
+                    onSuccess={handlePaymentSuccess}
+                />
             )}
         </DashboardLayout>
     )

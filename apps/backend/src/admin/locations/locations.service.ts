@@ -14,32 +14,49 @@ export class LocationsService {
       include: { rotatorConfig: true },
     });
 
-    // Add dynamic business count based on offers in rotator
-    const locationsWithStats = await Promise.all(
-      locations.map(async (loc: any) => {
-        let businessCount = 0;
-        if (loc.rotatorConfig?.offerSequence) {
-          try {
-            const offerIds = JSON.parse(loc.rotatorConfig.offerSequence);
-            const uniqueBusinesses = await this.prisma.offer.findMany({
-              where: { id: { in: offerIds } },
-              distinct: ['businessName'],
-              select: { businessName: true },
-            });
-            businessCount = uniqueBusinesses.length;
-          } catch (e) {
-            console.error(
-              `Failed to parse offer sequence for location ${loc.id}`,
-              e,
-            );
+    // Extract all offer IDs across all rotator sequences to avoid N+1 queries
+    const allOfferIds = new Set<string>();
+    const locationOfferMap = new Map<string, string[]>();
+
+    locations.forEach((loc: any) => {
+      if (loc.rotatorConfig?.offerSequence) {
+        try {
+          const ids: string[] = JSON.parse(loc.rotatorConfig.offerSequence);
+          if (Array.isArray(ids)) {
+            locationOfferMap.set(loc.id, ids);
+            ids.forEach((id) => allOfferIds.add(id));
           }
+        } catch (e) {
+          console.error(
+            `Failed to parse offer sequence for location ${loc.id}`,
+            e,
+          );
         }
-        return { ...loc, businessCount };
-      }),
-    );
+      }
+    });
+
+    const offerToBusinessMap = new Map<string, string>();
+    if (allOfferIds.size > 0) {
+      const offers = await this.prisma.offer.findMany({
+        where: { id: { in: Array.from(allOfferIds) } },
+        select: { id: true, businessName: true },
+      });
+      offers.forEach((o: any) => offerToBusinessMap.set(o.id, o.businessName));
+    }
+
+    const locationsWithStats = locations.map((loc: any) => {
+      const offerIds = locationOfferMap.get(loc.id) || [];
+      const uniqueBusinesses = new Set<string>();
+      offerIds.forEach((id) => {
+        const bName = offerToBusinessMap.get(id);
+        if (bName) uniqueBusinesses.add(bName);
+      });
+      return { ...loc, businessCount: uniqueBusinesses.size };
+    });
 
     return locationsWithStats;
   }
+
 
   async getLocation(id: string) {
     const location = await this.prisma.location.findUnique({

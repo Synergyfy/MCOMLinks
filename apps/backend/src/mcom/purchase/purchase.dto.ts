@@ -57,3 +57,15 @@ export class ConfirmPurchaseDto {
   @IsNotEmpty()
   paymentIntentId: string;
 }
+
+export class PurchaseWalletDto {
+  @ApiProperty({ example: '7b093f1d-192a-4ce4-8e12-32a89345091a' })
+  @IsString()
+  @IsNotEmpty()
+  externalPlanId: string;
+
+  @ApiProperty({ enum: BillingCycle, example: BillingCycle.MONTHLY })
+  @IsEnum(BillingCycle)
+  billingCycle: BillingCycle;
+}
+

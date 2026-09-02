@@ -107,13 +107,13 @@ function App() {
             ))}
             <div className="mobile-auth">
               <Link to="/login" className="btn-ghost" onClick={() => setIsMenuOpen(false)}>{settings.navSignInText}</Link>
-              <Link to={settings.navGetStartedLink} className="btn-premium" onClick={() => setIsMenuOpen(false)}>{settings.navGetStartedText}</Link>
+              <Link to="/login" className="btn-premium" onClick={() => setIsMenuOpen(false)}>{settings.navGetStartedText}</Link>
             </div>
           </div>
 
           <div className="desktop-auth">
             <Link to="/login" className="btn-ghost" style={{ textDecoration: 'none' }}>{settings.navSignInText}</Link>
-            <Link to={settings.navGetStartedLink} className="btn-premium" style={{ textDecoration: 'none' }}>
+            <Link to="/login" className="btn-premium" style={{ textDecoration: 'none' }}>
               {settings.navGetStartedText} <ArrowRight />
             </Link>
           </div>
@@ -140,7 +140,7 @@ function App() {
               {settings.heroDesc}
             </p>
             <div className="hero-ctas">
-              <Link to={settings.heroPrimaryLink} className="btn-premium" style={{ padding: '0.85rem 2rem', fontSize: '0.95rem', textDecoration: 'none' }}>
+              <Link to="/login" className="btn-premium" style={{ padding: '0.85rem 2rem', fontSize: '0.95rem', textDecoration: 'none' }}>
                 {settings.heroPrimaryCTA} <ArrowRight />
               </Link>
               <button className="btn-ghost" style={{ padding: '0.85rem 2rem', fontSize: '0.95rem', display: 'flex', alignItems: 'center' }}>
@@ -306,7 +306,7 @@ function App() {
             {settings.finalDesc}
           </p>
           <div className="hero-ctas" style={{ justifyContent: 'center' }}>
-            <Link to={settings.finalLink} className="btn-premium" style={{ padding: '1.1rem 3rem', fontSize: '1.05rem', textDecoration: 'none' }}>
+            <Link to="/login" className="btn-premium" style={{ padding: '1.1rem 3rem', fontSize: '1.05rem', textDecoration: 'none' }}>
               {settings.finalCTA} <ArrowRight />
             </Link>
           </div>

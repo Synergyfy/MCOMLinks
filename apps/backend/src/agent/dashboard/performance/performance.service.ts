@@ -76,20 +76,31 @@ export class AgentPerformanceService {
       take: 5,
     });
 
-    const topOffers = await Promise.all(
-      topOffersData.map(async (item: any) => {
-        const offer = await this.prisma.offer.findUnique({
-          where: { id: item.offerId! },
-          select: { headline: true, businessName: true },
-        });
-        return {
-          id: item.offerId,
-          headline: offer?.headline || 'Unknown Offer',
-          business: offer?.businessName || 'Unknown Business',
-          scans: item._count.offerId,
-        };
-      }),
-    );
+    const topOfferIds = topOffersData
+      .map((item: any) => item.offerId!)
+      .filter(Boolean);
+
+    const offerDetailsMap = new Map<string, { headline: string; businessName: string }>();
+    if (topOfferIds.length > 0) {
+      const offers = await this.prisma.offer.findMany({
+        where: { id: { in: topOfferIds } },
+        select: { id: true, headline: true, businessName: true },
+      });
+      offers.forEach((o: any) =>
+        offerDetailsMap.set(o.id, { headline: o.headline, businessName: o.businessName }),
+      );
+    }
+
+    const topOffers = topOffersData.map((item: any) => {
+      const details = offerDetailsMap.get(item.offerId!);
+      return {
+        id: item.offerId,
+        headline: details?.headline || 'Unknown Offer',
+        business: details?.businessName || 'Unknown Business',
+        scans: item._count.offerId,
+      };
+    });
+
 
     return {
       period,

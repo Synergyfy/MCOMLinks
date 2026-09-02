@@ -10,26 +10,38 @@ export class SettingsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getSettings(userId: string): Promise<BusinessSettingsDto> {
-    const profile = await this.prisma.businessProfile.findUnique({
+    let profile = await this.prisma.businessProfile.findUnique({
       where: { userId },
     });
 
     if (!profile) {
-      // Return defaults instead of 404 for a better UX
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
-      return {
-        id: 'temp',
-        name: user?.name || 'My Business',
-        description: 'Business description',
-        logoUrl: null,
-        contactEmail: user?.email || 'contact@example.com',
-        contactPhone: null,
-        address: null,
-        primaryColor: '#2563eb',
-        secondaryColor: '#f8fafc',
-        plan: 'None',
-        subscriptionStatus: 'pending',
-      } as BusinessSettingsDto;
+      let currentPerms: Record<string, any> = {};
+      try {
+        currentPerms = JSON.parse(user?.mcomPermissions || '{}');
+      } catch {}
+
+      const hasLinksAccess = currentPerms.canAccess_links === true;
+      const defaultPlan = await this.prisma.plan.findFirst({
+        where: hasLinksAccess ? { isDefault: false } : { isDefault: true },
+      });
+
+      profile = await this.prisma.businessProfile.create({
+        data: {
+          userId,
+          name: user?.name || 'My Business',
+          description: 'Business description',
+          logoUrl: null,
+          contactEmail: user?.email || 'contact@example.com',
+          contactPhone: null,
+          address: null,
+          primaryColor: '#2563eb',
+          secondaryColor: '#f8fafc',
+          plan: hasLinksAccess ? (defaultPlan?.name || 'Active') : 'None',
+          subscriptionStatus: hasLinksAccess ? 'active' : 'pending',
+          activePlanId: defaultPlan?.id || null,
+        },
+      });
     }
 
     return profile;

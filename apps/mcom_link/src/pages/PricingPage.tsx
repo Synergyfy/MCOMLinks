@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import '../App.css';
 import '../styles/pricing.css';
+import { getPublicPlans, getPublicPlanSchema } from '../api/plans';
+import type { Plan as PlanType, SessionUser } from '../types';
+import type { PlanSchema } from '../api/plans';
+import StripeCheckoutModal from '../components/StripeCheckoutModal';
 
 // Reusable Icons (copied from App.tsx or similar)
 const ArrowRight = () => (
@@ -20,78 +24,76 @@ const XIcon = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
 );
 
+const PLAN_COLORS = ['#22c55e', '#2563eb', '#8b5cf6', '#f59e0b'];
+
+type BillingCycle = 'monthly' | 'quarterly' | 'annual';
+const CYCLE_LABELS: Record<BillingCycle, string> = { monthly: '/month', quarterly: '/quarter', annual: '/year' };
+
+function formatPrice(value: number): string {
+    return value === 0 ? '£0' : `£${value}`;
+}
+
+const toPricingCard = (plan: PlanType, index: number) => ({
+    id: plan.id,
+    name: plan.name,
+    type: plan.type === 'TRIAL' ? 'Trial Access' : plan.type === 'SEASONAL' ? 'Seasonal Access' : 'Standard Access',
+    tagline: plan.tagline || plan.description || 'Start showing your business on MCOMQLinks',
+    isFree: !!plan.isFree,
+    monthlyPrice: plan.monthlyPrice,
+    quarterlyPrice: plan.quarterlyPrice,
+    annualPrice: plan.annualPrice,
+    color: PLAN_COLORS[index % PLAN_COLORS.length],
+    included: plan.features || [],
+    limitations: plan.limitations || [],
+    flags: plan.configuration?.featureFlags || {},
+    quotas: plan.configuration?.quotas || {},
+    popular: !!plan.isDefault,
+    bestFor: plan.bestFor || (plan.type === 'TRIAL' ? 'New businesses wanting to try the platform risk-free' : 'Businesses looking for MCOMQLinks storefront exposure'),
+});
+
 const PricingPage: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('Pricing');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [plans, setPlans] = useState<any[]>([]);
+  const [schema, setSchema] = useState<PlanSchema | null>(null);
+  const [cycle, setCycle] = useState<BillingCycle>('monthly');
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
+  const [checkoutPlan, setCheckoutPlan] = useState<any>(null);
+  const [checkoutCycle, setCheckoutCycle] = useState<BillingCycle>('monthly');
 
-  const plans = [
-    {
-      name: "BASIC",
-      type: "90-Day Access",
-      price: "£90",
-      period: "/ 90 days",
-      tagline: "Start showing your business on MCOMQLinks",
-      color: "#22c55e", // Green
-      included: [
-        "Claim and activate your Storefront listing",
-        "Get your QR Brand ID",
-        "Run MCOMQLinks campaigns",
-        "Appear on external storefront campaigns",
-        "Appear on internal campaigns",
-        "Participate in National campaigns",
-        "Participate in Hyper local campaigns",
-        "Use QR on VCards, posters, and campaign materials"
-      ],
-      limitations: [
-        "No promotion of third-party products/services",
-        "No automatic renewal (expires after 90 days)",
-        "No Expo access",
-        "Standard visibility only"
-      ],
-      bestFor: "Businesses just getting started, testing the platform, local storefront presence"
-    },
-    {
-      name: "PRO",
-      type: "Growth Mode",
-      price: "£450",
-      period: "/ 90 days",
-      tagline: "Grow beyond your storefront and scale your campaigns",
-      color: "#2563eb", // Blue
-      included: [
-        "Everything in BASIC",
-        "Promote third-party products & services",
-        "Run Nearby campaigns",
-        "Auto 90-day rollover into next season",
-        "Access to future seasonal campaigns",
-        "Access to evergreen campaign cycles",
-        "Greater campaign flexibility",
-        "Increased exposure across network"
-      ],
-      advantage: "Your campaigns continue automatically beyond 90 days",
-      bestFor: "Businesses ready to scale, multi-product/service sellers, partner/collaboration businesses"
-    },
-    {
-      name: "PRO+",
-      type: "Full Visibility & Expo Access",
-      price: "£1100",
-      period: "/ 90 days",
-      tagline: "Maximum exposure, priority access, and event promotion",
-      color: "#8b5cf6", // Purple
-      popular: true,
-      included: [
-        "Everything in PRO",
-        "Full access to End-of-Season Marketing Expo",
-        "Participate as seller or promoter",
-        "Priority visibility in campaigns",
-        "Higher placement in National campaigns",
-        "Higher placement in Hyper local campaigns",
-        "Premium positioning across MCOMQLinks",
-        "Stronger brand exposure"
-      ],
-      advantage: "You are actively promoted and highlighted across the network",
-      bestFor: "Serious businesses, brands launching products/services, businesses that want maximum visibility"
-    }
-  ];
+  useEffect(() => {
+    let active = true;
+    Promise.all([getPublicPlans(), getPublicPlanSchema()])
+      .then(([plansData, schemaData]) => {
+        if (!active) return;
+        setPlans((plansData || []).map(toPricingCard));
+        setSchema(schemaData || null);
+        setLoadError(null);
+      })
+      .catch((e: any) => {
+        if (!active) return;
+        setLoadError(e?.message || 'Failed to load plans');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const user = JSON.parse(stored) as SessionUser;
+        if (localStorage.getItem('access_token')) {
+          setSessionUser(user);
+        }
+      }
+    } catch {}
+  }, []);
 
   return (
     <div className="app-container pricing-page">
@@ -121,16 +123,32 @@ const PricingPage: React.FC = () => {
               )
             ))}
             <div className="mobile-auth">
-              <Link to="/login" className="btn-ghost" onClick={() => setIsMenuOpen(false)}>Sign In</Link>
-              <Link to="/signup" className="btn-premium" onClick={() => setIsMenuOpen(false)}>Get Started</Link>
+              {sessionUser ? (
+                <>
+                  <Link to="/dashboard" className="btn-ghost" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" className="btn-ghost" onClick={() => setIsMenuOpen(false)}>Sign In</Link>
+                  <Link to="/login" className="btn-premium" onClick={() => setIsMenuOpen(false)}>Get Started</Link>
+                </>
+              )}
             </div>
           </div>
 
           <div className="desktop-auth">
-            <Link to="/login" className="btn-ghost" style={{ textDecoration: 'none' }}>Sign In</Link>
-            <Link to="/signup" className="btn-premium" style={{ textDecoration: 'none' }}>
-              Get Started <ArrowRight />
-            </Link>
+            {sessionUser ? (
+              <Link to="/dashboard" className="btn-premium" style={{ textDecoration: 'none' }}>
+                Dashboard <ArrowRight />
+              </Link>
+            ) : (
+              <>
+                <Link to="/login" className="btn-ghost" style={{ textDecoration: 'none' }}>Sign In</Link>
+                <Link to="/login" className="btn-premium" style={{ textDecoration: 'none' }}>
+                  Get Started <ArrowRight />
+                </Link>
+              </>
+            )}
           </div>
 
           <button className="mobile-menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>
@@ -149,15 +167,47 @@ const PricingPage: React.FC = () => {
 
         {/* Plans Grid */}
         <section id="pricing" className="plans-grid">
-            {plans.map((plan, idx) => (
-                <div key={idx} className={`pricing-card ${plan.popular ? 'popular' : ''}`} style={{ '--plan-color': plan.color } as any}>
-                    {plan.popular && <div className="popular-badge">Highly Recommended</div>}
+            {loading ? (
+                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: '#64748b' }}>Loading plans…</div>
+            ) : loadError ? (
+                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: '#b91c1c', fontWeight: 700 }}>
+                    Unable to load plans: {loadError}
+                </div>
+            ) : plans.length === 0 ? (
+                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                    No plans available yet. Check back soon.
+                </div>
+            ) : (
+                <>
+                {/* Billing cycle toggle */}
+                <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '0.5rem', justifyContent: 'center', marginBottom: '1rem' }}>
+                    {(['monthly', 'quarterly', 'annual'] as BillingCycle[]).map(c => (
+                        <button
+                            key={c}
+                            onClick={() => setCycle(c)}
+                            style={{
+                                padding: '0.5rem 1.25rem', borderRadius: '100px', border: 'none', cursor: 'pointer',
+                                fontWeight: 800, fontSize: '0.8rem',
+                                background: cycle === c ? '#2563eb' : '#f1f5f9',
+                                color: cycle === c ? '#fff' : '#64748b',
+                            }}
+                        >
+                            {c.charAt(0).toUpperCase() + c.slice(1)}
+                        </button>
+                    ))}
+                </div>
+                {plans.map(plan => {
+                    const price = plan.isFree ? 'Free' : `${formatPrice(plan[cycle === 'monthly' ? 'monthlyPrice' : cycle === 'quarterly' ? 'quarterlyPrice' : 'annualPrice'])}`;
+                    return (
+                <div key={plan.id} className={`pricing-card ${plan.popular ? 'popular' : ''}`} style={{ '--plan-color': plan.color } as any}>
+                    {plan.popular && <div className="popular-badge">Most Popular</div>}
+                    {plan.isFree && <div className="popular-badge" style={{ background: '#10b981' }}>Free</div>}
                     <div className="card-header">
                         <span className="plan-name">{plan.name}</span>
                         <span className="plan-type">{plan.type}</span>
                         <div className="plan-price">
-                            <span className="amount">{plan.price}</span>
-                            <span className="period">{plan.period}</span>
+                            <span className="amount">{price}</span>
+                            <span className="period">{plan.isFree ? '' : CYCLE_LABELS[cycle]}</span>
                         </div>
                         <p className="plan-tagline">{plan.tagline}</p>
                     </div>
@@ -165,26 +215,20 @@ const PricingPage: React.FC = () => {
                     <div className="card-features">
                         <h4>What’s Included</h4>
                         <ul>
-                            {plan.included.map((item, i) => (
+                            {plan.included.length > 0 ? plan.included.map((item: string, i: number) => (
                                 <li key={i}><CheckIcon /> {item}</li>
-                            ))}
+                            )) : <li><CheckIcon /> Storefront listing on MCOMQLinks</li>}
                         </ul>
                     </div>
 
-                    {plan.limitations && (
+                    {plan.limitations && plan.limitations.length > 0 && (
                         <div className="card-limitations">
                             <h4>Limitations</h4>
                             <ul>
-                                {plan.limitations.map((item, i) => (
+                                {plan.limitations.map((item: string, i: number) => (
                                     <li key={i} className="limited"><XIcon /> {item}</li>
                                 ))}
                             </ul>
-                        </div>
-                    )}
-
-                    {plan.advantage && (
-                        <div className="card-advantage">
-                            <strong>Key Advantage:</strong> {plan.advantage}
                         </div>
                     )}
 
@@ -193,12 +237,24 @@ const PricingPage: React.FC = () => {
                     </div>
 
                     <div className="card-footer">
-                        <Link to="/signup" className="btn-premium full-width">
-                            Start {plan.name} Plan <ArrowRight />
-                        </Link>
+                        {sessionUser && !sessionUser.permissions?.canAccess_links ? (
+                            <button
+                                className="btn-premium full-width"
+                                onClick={() => { setCheckoutPlan(plan); setCheckoutCycle(cycle); }}
+                            >
+                                Start {plan.name} Plan <ArrowRight />
+                            </button>
+                        ) : (
+                            <Link to="/login" className="btn-premium full-width">
+                                Start {plan.name} Plan <ArrowRight />
+                            </Link>
+                        )}
                     </div>
                 </div>
-            ))}
+                    );
+                })}
+                </>
+            )}
         </section>
 
         {/* Seasonal System Section */}
@@ -267,80 +323,49 @@ const PricingPage: React.FC = () => {
         {/* Comparison Table */}
         <section className="comparison-section">
             <h2 className="main-headline" style={{ fontSize: '3rem', textAlign: 'center' }}>Feature <span className="gradient-text">Comparison</span></h2>
+            {loading ? (
+                <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>Loading plans…</div>
+            ) : plans.length === 0 ? null : (
             <div className="table-responsive">
                 <table className="comparison-table">
                     <thead>
                         <tr>
                             <th>Feature</th>
-                            <th>BASIC (£90)</th>
-                            <th>PRO (£450)</th>
-                            <th>PRO+ (£1100)</th>
+                            {plans.map(plan => (
+                                <th key={plan.id}>{plan.name.toUpperCase()}</th>
+                            ))}
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>90-Day Access</td>
-                            <td className="check-cell"><CheckIcon /></td>
-                            <td className="check-cell"><CheckIcon /></td>
-                            <td className="check-cell"><CheckIcon /></td>
-                        </tr>
-                        <tr>
-                            <td>QR Brand ID</td>
-                            <td className="check-cell"><CheckIcon /></td>
-                            <td className="check-cell"><CheckIcon /></td>
-                            <td className="check-cell"><CheckIcon /></td>
-                        </tr>
-                        <tr>
-                            <td>Storefront Campaigns</td>
-                            <td className="check-cell"><CheckIcon /></td>
-                            <td className="check-cell"><CheckIcon /></td>
-                            <td className="check-cell"><CheckIcon /></td>
-                        </tr>
-                        <tr>
-                            <td>National Campaigns</td>
-                            <td className="check-cell"><CheckIcon /></td>
-                            <td className="check-cell"><CheckIcon /></td>
-                            <td className="check-cell"><CheckIcon /></td>
-                        </tr>
-                        <tr>
-                            <td>Hyper Local Campaigns</td>
-                            <td className="check-cell"><CheckIcon /></td>
-                            <td className="check-cell"><CheckIcon /></td>
-                            <td className="check-cell"><CheckIcon /></td>
-                        </tr>
-                        <tr>
-                            <td>Nearby Campaigns</td>
-                            <td className="x-cell"><XIcon /></td>
-                            <td className="check-cell"><CheckIcon /></td>
-                            <td className="check-cell"><CheckIcon /></td>
-                        </tr>
-                        <tr>
-                            <td>Third-Party Promotion</td>
-                            <td className="x-cell"><XIcon /></td>
-                            <td className="check-cell"><CheckIcon /></td>
-                            <td className="check-cell"><CheckIcon /></td>
-                        </tr>
-                        <tr>
-                            <td>Auto Rollover</td>
-                            <td className="x-cell"><XIcon /></td>
-                            <td className="check-cell"><CheckIcon /></td>
-                            <td className="check-cell"><CheckIcon /></td>
-                        </tr>
-                        <tr>
-                            <td>Expo Access</td>
-                            <td className="x-cell"><XIcon /></td>
-                            <td><span className="limit-tag">Limited</span></td>
-                            <td className="check-cell"><CheckIcon /></td>
-                        </tr>
-                        <tr>
-                            <td>Priority Visibility</td>
-                            <td className="x-cell"><XIcon /></td>
-                            <td className="x-cell"><XIcon /></td>
-                            <td className="check-cell"><CheckIcon /></td>
-                        </tr>
+                        {(schema?.featureFlags || []).map(f => (
+                            <tr key={f.key}>
+                                <td>{f.label}</td>
+                                {plans.map(plan => (
+                                    <td key={plan.id} className={plan.flags?.[f.key] ? 'check-cell' : 'x-cell'}>
+                                        {plan.flags?.[f.key] ? <CheckIcon /> : <XIcon />}
+                                    </td>
+                                ))}
+                            </tr>
+                        ))}
+                        {(schema?.quotas || []).filter(q => q.type === 'number').map(q => (
+                            <tr key={q.key}>
+                                <td>{q.label}</td>
+                                {plans.map(plan => {
+                                    const val = plan.quotas?.[q.key];
+                                    const display = typeof val === 'number' ? (val === -1 ? 'Unlimited' : String(val)) : '—';
+                                    return <td key={plan.id} style={{ textAlign: 'center', fontWeight: 700 }}>{display}</td>;
+                                })}
+                            </tr>
+                        ))}
+                        {(!schema || (schema.featureFlags.length === 0 && schema.quotas.filter(q => q.type === 'number').length === 0)) && (
+                            <tr>
+                                <td colSpan={plans.length + 1} style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8' }}>No comparison features configured.</td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
+            )}
         </section>
 
         {/* Final CTA */}
@@ -350,9 +375,22 @@ const PricingPage: React.FC = () => {
                 Get your storefront live and start attracting customers today.
             </p>
             <div className="hero-ctas" style={{ justifyContent: 'center' }}>
-                <Link to="/signup" className="btn-premium" style={{ padding: '1.1rem 3rem', fontSize: '1.05rem', textDecoration: 'none' }}>
-                    Start Now <ArrowRight />
-                </Link>
+                {sessionUser && !sessionUser.permissions?.canAccess_links ? (
+                    <button
+                        className="btn-premium"
+                        style={{ padding: '1.1rem 3rem', fontSize: '1.05rem' }}
+                        onClick={() => {
+                            const popular = plans.find(p => p.popular) || plans[0];
+                            if (popular) { setCheckoutPlan(popular); setCheckoutCycle(cycle); }
+                        }}
+                    >
+                        Start Now <ArrowRight />
+                    </button>
+                ) : (
+                    <Link to="/login" className="btn-premium" style={{ padding: '1.1rem 3rem', fontSize: '1.05rem', textDecoration: 'none' }}>
+                        Start Now <ArrowRight />
+                    </Link>
+                )}
             </div>
         </section>
 
@@ -395,6 +433,27 @@ const PricingPage: React.FC = () => {
           </div>
         </footer>
       </div>
+
+      {checkoutPlan && (
+        <StripeCheckoutModal
+          plan={checkoutPlan}
+          billingCycle={checkoutCycle}
+          price={checkoutPlan.isFree ? 0 : checkoutPlan[checkoutCycle === 'monthly' ? 'monthlyPrice' : checkoutCycle === 'quarterly' ? 'quarterlyPrice' : 'annualPrice']}
+          cycleLabel={CYCLE_LABELS[checkoutCycle]}
+          onClose={() => setCheckoutPlan(null)}
+          onSuccess={() => {
+            try {
+              const stored = localStorage.getItem('user');
+              if (stored) {
+                const user = JSON.parse(stored);
+                user.permissions = { ...user.permissions, canAccess_links: true };
+                localStorage.setItem('user', JSON.stringify(user));
+              }
+            } catch {}
+            navigate('/dashboard');
+          }}
+        />
+      )}
     </div>
   );
 };
