@@ -4,8 +4,8 @@ import { IdentityController } from './identity.controller';
 import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
-    imports: [PrismaModule],
-    controllers: [IdentityController],
-    providers: [IdentityService]
+  imports: [PrismaModule],
+  controllers: [IdentityController],
+  providers: [IdentityService],
 })
-export class IdentityModule { }
+export class IdentityModule {}

@@ -8,10 +8,27 @@ import { MerchantsModule } from './merchants/merchants.module';
 import { SeasonsModule } from './seasons/seasons.module';
 import { IdentityModule } from './identity/identity.module';
 import { HealthModule } from './health/health.module';
+import { AdminPlansModule } from './plans/admin-plans.module';
+import { CmsModule } from './cms/cms.module';
+import { PromoModule } from './promo/promo.module';
+import { AdsModule } from './ads/ads.module';
 
 @Module({
-    imports: [PrismaModule, LocationsModule, AdminOffersModule, MerchantsModule, SeasonsModule, IdentityModule, HealthModule],
-    controllers: [AdminController],
-    providers: [AdminService],
+  imports: [
+    PrismaModule,
+    LocationsModule,
+    AdminOffersModule,
+    MerchantsModule,
+    SeasonsModule,
+    IdentityModule,
+    HealthModule,
+    AdminPlansModule,
+    CmsModule,
+    PromoModule,
+    AdsModule,
+  ],
+  controllers: [AdminController],
+  providers: [AdminService],
 })
-export class AdminModule { }
+export class AdminModule {}
+

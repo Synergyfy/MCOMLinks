@@ -18,7 +18,8 @@ import RedeemPage from './pages/RedeemPage.tsx'
 import ConfirmationPage from './pages/ConfirmationPage.tsx'
 import FallbackPage from './pages/FallbackPage.tsx'
 import LoginPage from './pages/LoginPage.tsx'
-import SignupPage from './pages/SignupPage.tsx'
+import AdminLoginPage from './pages/AdminLoginPage.tsx'
+import McomCallbackPage from './pages/McomCallbackPage.tsx'
 import PricingPage from './pages/PricingPage.tsx'
 
 // Dashboard Pages
@@ -60,7 +61,8 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/pricing/promo" element={<PromoPricingPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/admin/login" element={<AdminLoginPage />} />
+        <Route path="/auth/mcom/callback" element={<McomCallbackPage />} />
 
         {/* Rotator Storefront Routes (Dynamic) */}
         <Route path="/r/:locationId" element={<StorefrontPage />} />
@@ -71,33 +73,33 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/confirmed/:offerId" element={<ConfirmationPage />} />
 
         {/* Business Owner Dashboard Routes */}
-        <Route path="/dashboard" element={<ProtectedRoute><DashboardHome /></ProtectedRoute>} />
-        <Route path="/dashboard/offers" element={<ProtectedRoute><OffersPage /></ProtectedRoute>} />
-        <Route path="/dashboard/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
-        <Route path="/dashboard/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
-        <Route path="/dashboard/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-        <Route path="/dashboard/billing" element={<ProtectedRoute><BillingPage /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute roles={['BUSINESS']} requireLinksAccess><DashboardHome /></ProtectedRoute>} />
+        <Route path="/dashboard/offers" element={<ProtectedRoute roles={['BUSINESS']} requireLinksAccess><OffersPage /></ProtectedRoute>} />
+        <Route path="/dashboard/analytics" element={<ProtectedRoute roles={['BUSINESS']} requireLinksAccess><AnalyticsPage /></ProtectedRoute>} />
+        <Route path="/dashboard/support" element={<ProtectedRoute roles={['BUSINESS']} requireLinksAccess><SupportPage /></ProtectedRoute>} />
+        <Route path="/dashboard/settings" element={<ProtectedRoute roles={['BUSINESS']} requireLinksAccess><SettingsPage /></ProtectedRoute>} />
+        <Route path="/dashboard/billing" element={<ProtectedRoute roles={['BUSINESS']} requireLinksAccess><BillingPage /></ProtectedRoute>} />
 
         {/* Agent Platform Routes */}
-        <Route path="/agent" element={<ProtectedRoute><AgentDashboard /></ProtectedRoute>} />
-        <Route path="/agent/portfolio" element={<ProtectedRoute><PortfolioPage /></ProtectedRoute>} />
-        <Route path="/agent/onboard" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-        <Route path="/agent/performance" element={<ProtectedRoute><AgentPerformancePage /></ProtectedRoute>} />
-        <Route path="/agent/business/:id" element={<ProtectedRoute><BusinessDetailsPage /></ProtectedRoute>} />
-        <Route path="/agent/business/:id/logs" element={<ProtectedRoute><BusinessCommLogPage /></ProtectedRoute>} />
+        <Route path="/agent" element={<ProtectedRoute roles={['AGENT']}><AgentDashboard /></ProtectedRoute>} />
+        <Route path="/agent/portfolio" element={<ProtectedRoute roles={['AGENT']}><PortfolioPage /></ProtectedRoute>} />
+        <Route path="/agent/onboard" element={<ProtectedRoute roles={['AGENT']}><OnboardingPage /></ProtectedRoute>} />
+        <Route path="/agent/performance" element={<ProtectedRoute roles={['AGENT']}><AgentPerformancePage /></ProtectedRoute>} />
+        <Route path="/agent/business/:id" element={<ProtectedRoute roles={['AGENT']}><BusinessDetailsPage /></ProtectedRoute>} />
+        <Route path="/agent/business/:id/logs" element={<ProtectedRoute roles={['AGENT']}><BusinessCommLogPage /></ProtectedRoute>} />
 
         {/* Admin Platform Routes */}
-        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-        <Route path="/admin/locations" element={<ProtectedRoute><LocationManager /></ProtectedRoute>} />
-        <Route path="/admin/offers" element={<ProtectedRoute><AdminOfferManager /></ProtectedRoute>} />
-        <Route path="/admin/merchants" element={<ProtectedRoute><MerchantControl /></ProtectedRoute>} />
-        <Route path="/admin/seasons" element={<ProtectedRoute><SeasonalCampaigns /></ProtectedRoute>} />
-        <Route path="/admin/identity" element={<ProtectedRoute><IdentityControl /></ProtectedRoute>} />
-        <Route path="/admin/health" element={<ProtectedRoute><SystemHealth /></ProtectedRoute>} />
-        <Route path="/admin/ad-approval" element={<ProtectedRoute><AdApprovalPage /></ProtectedRoute>} />
-        <Route path="/admin/plans" element={<ProtectedRoute><PlanConfig /></ProtectedRoute>} />
-        <Route path="/admin/promo" element={<ProtectedRoute><AdminPromoControl /></ProtectedRoute>} />
-        <Route path="/admin/home-cms" element={<ProtectedRoute><AdminHomePageCMS /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute roles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/locations" element={<ProtectedRoute roles={['ADMIN']}><LocationManager /></ProtectedRoute>} />
+        <Route path="/admin/offers" element={<ProtectedRoute roles={['ADMIN']}><AdminOfferManager /></ProtectedRoute>} />
+        <Route path="/admin/merchants" element={<ProtectedRoute roles={['ADMIN']}><MerchantControl /></ProtectedRoute>} />
+        <Route path="/admin/seasons" element={<ProtectedRoute roles={['ADMIN']}><SeasonalCampaigns /></ProtectedRoute>} />
+        <Route path="/admin/identity" element={<ProtectedRoute roles={['ADMIN']}><IdentityControl /></ProtectedRoute>} />
+        <Route path="/admin/health" element={<ProtectedRoute roles={['ADMIN']}><SystemHealth /></ProtectedRoute>} />
+        <Route path="/admin/ad-approval" element={<ProtectedRoute roles={['ADMIN']}><AdApprovalPage /></ProtectedRoute>} />
+        <Route path="/admin/plans" element={<ProtectedRoute roles={['ADMIN']}><PlanConfig /></ProtectedRoute>} />
+        <Route path="/admin/promo" element={<ProtectedRoute roles={['ADMIN']}><AdminPromoControl /></ProtectedRoute>} />
+        <Route path="/admin/home-cms" element={<ProtectedRoute roles={['ADMIN']}><AdminHomePageCMS /></ProtectedRoute>} />
 
         {/* Global Fallback Route */}
         <Route path="*" element={<FallbackPage />} />

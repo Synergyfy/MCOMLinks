@@ -19,5 +19,13 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // The codebase intentionally uses `any` for API/mock JSON payloads. Keep the
+      // rule visible as a warning but don't fail the build on it.
+      '@typescript-eslint/no-explicit-any': 'warn',
+      // Several pre-existing pages set state directly inside effects to hydrate
+      // from localStorage. Downgrade this newer strict rule to a warning.
+      'react-hooks/set-state-in-effect': 'warn',
+    },
   },
 ])

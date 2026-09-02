@@ -17,6 +17,11 @@ model User {
   postalCode         String?
   businessProfile    BusinessProfile?
   managingBusinesses BusinessProfile[] @relation("AgentBusinesses")
+  mcomUserId         String?          @unique
+  mcomAccessToken    String?
+  mcomRefreshToken   String?
+  mcomPermissions    String?
+  autoRenew          Boolean          @default(true)
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 }
@@ -83,6 +88,9 @@ model BusinessProfile {
   ownerName          String  @default("")
   plan               String  @default("None") // None, Hyper-local, Nearby, National
   subscriptionStatus String  @default("pending") // active, suspended, pending
+  activePlanId       String?
+  activePlan         Plan?   @relation(fields: [activePlanId], references: [id])
+  planExpiresAt      DateTime?
   user               User    @relation(fields: [userId], references: [id])
   userId             String  @unique
   agent              User?   @relation("AgentBusinesses", fields: [agentId], references: [id])
@@ -148,3 +156,83 @@ model SeasonalRule {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// MCOM Ecosystem: centrally-managed plans (CRUD via /api/v1/system/plans).
+// Follows the MCOM Solutions plan contract (guide: Plans CRUD & Centralized In-App Payments).
+model Plan {
+  id                     String           @id @default(uuid())
+  name                   String
+  description            String?
+  monthlyPrice           Float            @default(0)
+  quarterlyPrice         Float            @default(0)
+  annualPrice            Float            @default(0)
+  features               String           @default("[]") // JSON array of strings
+  limitations            String           @default("[]") // JSON array of strings
+  configuration          String           @default("{}") // JSON { quotas, featureFlags }
+  tagline                String?
+  bestFor                String?
+  isFree                 Boolean          @default(false)
+  isActive               Boolean          @default(true)
+  isDefault              Boolean          @default(false)
+  type                   String           @default("STANDARD") // STANDARD | TRIAL | SEASONAL
+  trialDuration          Int?
+  seasonId               String?
+  stripeMonthlyPriceId   String?
+  stripeQuarterlyPriceId String?
+  stripeAnnualPriceId    String?
+  paypalMonthlyPlanId    String?
+  paypalQuarterlyPlanId  String?
+  paypalAnnualPlanId     String?
+  activeBusinesses       BusinessProfile[]
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+}
+
+model CmsSetting {
+  id        String   @id @default("homepage-settings")
+  content   String   @default("{}") // JSON string for hero, features, callouts
+  updatedAt DateTime @updatedAt
+}
+
+model PromoBanner {
+  id              String   @id @default("promo-settings")
+  bannerText      String   @default("🎉 Special Offer: Get 20% off Premium Rotator spots this month!")
+  ctaText         String   @default("Upgrade Now")
+  ctaLink         String   @default("/pricing")
+  backgroundColor String   @default("#2563eb")
+  textColor       String   @default("#ffffff")
+  isActive        Boolean  @default(true)
+  startDate       DateTime @default(now())
+  endDate         DateTime @default("2099-12-31T23:59:59.999Z")
+  updatedAt       DateTime @updatedAt
+}
+
+model AdUnit {
+  id              String   @id @default(uuid())
+  businessName    String
+  headline        String
+  description     String?
+  mediaType       String   @default("image") // image, video
+  imageUrl        String
+  targetUrl       String
+  placement       String   @default("homepage") // homepage, sidebar, storefront
+  status          String   @default("pending") // pending, approved, rejected
+  rejectionReason String?
+  budget          Float    @default(0.0)
+  impressions     Int      @default(0)
+  clicks          Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model AgentCommLog {
+  id         String   @id @default(uuid())
+  businessId String
+  agentId    String?
+  agentName  String   @default("Field Agent")
+  type       String   @default("note") // call, email, visit, note
+  notes      String
+  outcome    String?
+  createdAt  DateTime @default(now())
+}
+

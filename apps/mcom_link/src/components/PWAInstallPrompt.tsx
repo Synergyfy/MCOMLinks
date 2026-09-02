@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 interface BeforeInstallPromptEvent extends Event {
     prompt: () => Promise<void>
@@ -8,14 +8,14 @@ interface BeforeInstallPromptEvent extends Event {
 export default function PWAInstallPrompt() {
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
     const [showPrompt, setShowPrompt] = useState(false)
-    const [isInstalled, setIsInstalled] = useState(false)
+    const [isInstalled, setIsInstalled] = useState(() =>
+        window.matchMedia('(display-mode: standalone)').matches,
+    )
+    const showTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     useEffect(() => {
-        // Check if already installed
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            setIsInstalled(true)
-            return
-        }
+        // Already installed as a standalone PWA -> nothing to do.
+        if (isInstalled) return
 
         // Check if user dismissed recently (don't annoy them)
         const dismissed = localStorage.getItem('pwa-install-dismissed')
@@ -29,20 +29,27 @@ export default function PWAInstallPrompt() {
             e.preventDefault()
             setDeferredPrompt(e as BeforeInstallPromptEvent)
             // Wait a moment before showing to not be intrusive
-            setTimeout(() => setShowPrompt(true), 3000)
+            showTimer.current = setTimeout(() => setShowPrompt(true), 3000)
+        }
+
+        const onInstalled = () => {
+            setIsInstalled(true)
+            setShowPrompt(false)
+            setDeferredPrompt(null)
+            if (showTimer.current) clearTimeout(showTimer.current)
         }
 
         window.addEventListener('beforeinstallprompt', handler)
 
         // Listen for successful install
-        window.addEventListener('appinstalled', () => {
-            setIsInstalled(true)
-            setShowPrompt(false)
-            setDeferredPrompt(null)
-        })
+        window.addEventListener('appinstalled', onInstalled)
 
-        return () => window.removeEventListener('beforeinstallprompt', handler)
-    }, [])
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handler)
+            window.removeEventListener('appinstalled', onInstalled)
+            if (showTimer.current) clearTimeout(showTimer.current)
+        }
+    }, [isInstalled])
 
     const handleInstall = async () => {
         if (!deferredPrompt) return

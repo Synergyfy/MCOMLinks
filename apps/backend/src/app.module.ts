@@ -12,6 +12,7 @@ import { StorefrontModule } from './storefront/storefront.module';
 import { AdminModule } from './admin/admin.module';
 
 import { AgentModule } from './agent/agent.module';
+import { McomModule } from './mcom/mcom.module';
 
 @Module({
   imports: [
@@ -24,9 +25,10 @@ import { AgentModule } from './agent/agent.module';
     SettingsModule,
     StorefrontModule,
     AdminModule,
-    AgentModule
+    AgentModule,
+    McomModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

@@ -22,6 +22,21 @@ export default function AdminOfferManager() {
     const [editTarget, setEditTarget] = useState<any | null>(null)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
+    // Real seasonal rules from the API (falls back to the mock list)
+    const [seasons, setSeasons] = useState<any[]>([])
+
+    useEffect(() => {
+        const fetchSeasons = async () => {
+            try {
+                const data = await api.get<any[]>('/admin/seasons')
+                setSeasons(Array.isArray(data) ? data : mockSeasons)
+            } catch {
+                setSeasons(mockSeasons)
+            }
+        }
+        fetchSeasons()
+    }, [])
+
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (file) {
@@ -140,7 +155,15 @@ export default function AdminOfferManager() {
         e.preventDefault()
         if (!editTarget) return
         try {
-            await api.patch(`/admin/offers/${editTarget.id}`, editTarget)
+            // Only send fields the backend UpdateGlobalOfferDto accepts.
+            const payload = {
+                headline: editTarget.headline,
+                description: editTarget.description,
+                visibility: editTarget.exposureType === 'nearby' ? 'hyperlocal' : editTarget.exposureType || editTarget.visibility,
+                targetPostcode: editTarget.targetPostcode,
+                isPremium: editTarget.isPremium,
+            }
+            await api.patch(`/admin/offers/${editTarget.id}`, payload)
             setIsEditModalOpen(false)
             setEditTarget(null)
             fetchOffers() // Refresh list
@@ -150,9 +173,26 @@ export default function AdminOfferManager() {
         }
     }
 
+    const handleToggleBilling = async (offer: any) => {
+        const nextStatus = offer.billingStatus === 'suspended' ? 'active' : 'suspended'
+        try {
+            await api.patch(`/admin/offers/${offer.id}/billing`, { status: nextStatus })
+            setOffers(offers.map(o => o.id === offer.id ? { ...o, billingStatus: nextStatus } : o))
+        } catch (error) {
+            console.error('Failed to update billing status:', error)
+            alert('Failed to update billing status')
+        }
+    }
+
     const handleAddOffer = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
+            // Resolve the seasonal rule id against the real list (or the mock list)
+            // where mock seasons use ids like "s-winter".
+            const seasonObj = newOffer.season === 'all'
+                ? undefined
+                : seasons.find((s: any) => s.id === `s-${newOffer.season}` || (s.name && s.name.toLowerCase().includes(newOffer.season)))
+
             const payload = {
                 businessName: newOffer.businessName,
                 headline: newOffer.headline,
@@ -165,13 +205,13 @@ export default function AdminOfferManager() {
                 videoUrl: newOffer.videoUrl,
                 startDate: newOffer.startDate,
                 endDate: newOffer.endDate,
-                exposureType: newOffer.exposureType,
-                rotatorWeight: newOffer.rotatorWeight,
-                targetRadius: newOffer.targetRadius,
+                // Backend uses `visibility` (national | hyperlocal); "nearby" targets
+                // hyperlocal for now since the enum has no nearby value.
+                visibility: newOffer.exposureType === 'nearby' ? 'hyperlocal' : newOffer.exposureType,
                 targetPostcode: newOffer.targetPostcode,
                 isPremium: newOffer.isPremium,
                 assignedLocation: newOffer.location,
-                seasonId: newOffer.season !== 'all' ? newOffer.season : undefined,
+                seasonId: seasonObj?.id,
             }
 
             await api.post('/admin/offers', payload)
@@ -436,7 +476,7 @@ export default function AdminOfferManager() {
                                                     className="db-btn db-btn-ghost" 
                                                     style={{ padding: '0.4rem', color: offer.billingStatus === 'suspended' ? '#10b981' : '#dc2626' }}
                                                     title={offer.billingStatus === 'suspended' ? 'Unlock Account' : 'Suspend Billing'}
-                                                    onClick={() => setOffers(offers.map(o => o.id === offer.id ? { ...o, billingStatus: o.billingStatus === 'suspended' ? 'active' : 'suspended' } : o))}
+                                                    onClick={() => handleToggleBilling(offer)}
                                                 >
                                                     {offer.billingStatus === 'suspended' ? (
                                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
@@ -874,33 +914,6 @@ export default function AdminOfferManager() {
                                 <button type="submit" className="db-btn db-btn-primary" style={{ paddingLeft: '2rem', paddingRight: '2rem' }}>Apply Final Rule</button>
                             </div>
                         </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Reject Modal */}
-            {rejectTarget && (
-                <div className="db-modal-overlay" onClick={() => setRejectTarget(null)}>
-                    <div className="db-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
-                        <div className="db-modal-header">
-                            <h2 className="db-card-title">Reject Offer</h2>
-                            <button className="db-modal-close" onClick={() => setRejectTarget(null)}>✕</button>
-                        </div>
-                        <div className="db-modal-content">
-                            <p style={{ fontSize: '0.85rem', marginBottom: '1rem', color: '#64748b' }}>Provide a reason so the business owner can fix it.</p>
-                            <textarea
-                                className="db-input"
-                                style={{ height: '100px', resize: 'none' }}
-                                placeholder="e.g. Image is too low resolution, or typo in headline..."
-                                value={rejectionReason}
-                                onChange={e => setRejectionReason(e.target.value)}
-                                autoFocus
-                            />
-                        </div>
-                        <div className="db-modal-footer">
-                            <button className="db-btn db-btn-ghost" onClick={() => setRejectTarget(null)}>Cancel</button>
-                            <button className="db-btn" style={{ background: '#ef4444', color: '#fff' }} onClick={handleConfirmReject} disabled={!rejectionReason.trim()}>Confirm Rejection</button>
-                        </div>
                     </div>
                 </div>
             )}

@@ -35,8 +35,13 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [profile, setProfile] = useState<{name?: string, logoUrl?: string, ownerName?: string, plan?: string, subscriptionStatus?: string}>({})
 
-    const storedUserStr = localStorage.getItem('user');
-    const storedUser = storedUserStr ? JSON.parse(storedUserStr) : null;
+    let storedUser: { name?: string } | null = null;
+    try {
+        const storedUserStr = localStorage.getItem('user');
+        storedUser = storedUserStr ? JSON.parse(storedUserStr) : null;
+    } catch {
+        storedUser = null;
+    }
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -56,8 +61,22 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
                         plan: mockPlan || data.plan || 'None',
                         subscriptionStatus: mockStatus || data.subscriptionStatus || 'pending'
                     })
+
+                    // If active plan is confirmed, ensure user permissions reflect links access
+                    if (data.subscriptionStatus === 'active' && data.plan && data.plan !== 'None') {
+                        try {
+                            const stored = localStorage.getItem('user')
+                            if (stored) {
+                                const parsed = JSON.parse(stored)
+                                if (!parsed.permissions?.canAccess_links) {
+                                    parsed.permissions = { ...(parsed.permissions || {}), canAccess_links: true }
+                                    localStorage.setItem('user', JSON.stringify(parsed))
+                                }
+                            }
+                        } catch {}
+                    }
                 }
-            } catch (err) {
+            } catch {
                 // Fallback to local storage if API fails
                 const mockPlan = localStorage.getItem('mock_user_plan')
                 const mockStatus = localStorage.getItem('mock_user_status')
@@ -199,7 +218,22 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
                         <img src={logoSource} alt={brandName} className="db-user-avatar" />
                         <div className="db-user-info">
                             <div className="db-user-name">{contactName}</div>
-                            <div className="db-user-role">{brandName}</div>
+                            <div className="db-user-role" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                <span>{brandName}</span>
+                                {profile.plan && profile.plan !== 'None' && (
+                                    <span style={{
+                                        fontSize: '0.65rem',
+                                        fontWeight: 800,
+                                        background: '#2563eb',
+                                        color: '#ffffff',
+                                        padding: '0.1rem 0.4rem',
+                                        borderRadius: '0.25rem',
+                                        letterSpacing: '0.02em',
+                                    }}>
+                                        {profile.plan}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </Link>
                 </div>
@@ -218,8 +252,32 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
                         <h1 className="db-page-title">{title}</h1>
                     </div>
 
-                    <div className="db-header-actions">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div className="db-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        {profile.plan && profile.plan !== 'None' && (
+                            <Link
+                                to="/dashboard/billing"
+                                style={{
+                                    textDecoration: 'none',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.35rem',
+                                    padding: '0.3rem 0.75rem',
+                                    borderRadius: '999px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 800,
+                                    background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+                                    color: '#1d4ed8',
+                                    border: '1px solid #bfdbfe',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                }}
+                                title="View Subscription Details"
+                            >
+                                <span>⚡</span>
+                                <span>{profile.plan}</span>
+                            </Link>
+                        )}
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>Status:</span>
                             <span className={`db-badge ${
                                 profile.subscriptionStatus === 'active' ? 'db-badge-approved' : 

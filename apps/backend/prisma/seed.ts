@@ -1,46 +1,135 @@
 import "dotenv/config";
 import { PrismaClient } from '@prisma/client';
+import { hashPassword } from '../src/auth/password.util';
 
 const prisma = new PrismaClient();
 
 async function main() {
     console.log('Starting to seed the database...');
 
-    // 1. Create demo users
+    const seededPassword = await hashPassword('password123');
+
+    // 1. Create demo users (email/password login is ADMIN-only; other roles
+    // must authenticate via Central Hub Solution SSO, so only admin is seeded).
     const demoAdmin = await prisma.user.upsert({
         where: { email: 'admin@mcomlinks.com' },
         update: {},
         create: {
             email: 'admin@mcomlinks.com',
-            password: 'password123',
+            password: seededPassword,
             name: 'Demo Admin',
             role: 'ADMIN',
         },
     });
 
-    const demoAgent = await prisma.user.upsert({
-        where: { email: 'agent@mcomlinks.com' },
-        update: {},
-        create: {
-            email: 'agent@mcomlinks.com',
-            password: 'password123',
-            name: 'James Agent',
-            role: 'AGENT',
-        },
-    });
+    console.log(`Created/Updated admin user: ${demoAdmin.email}`);
 
-    const demoBusiness = await prisma.user.upsert({
-        where: { email: 'business@mcomlinks.com' },
-        update: {},
-        create: {
-            email: 'business@mcomlinks.com',
-            password: 'password123',
-            name: 'Isabella ShopOwner',
-            role: 'USER',
+    // 1b. Seed the plan catalogue (upsert by name so the seed can be re-run).
+    // Mirrors the MCOM Links plan tiers and the MCOM Solutions plan contract.
+    const seedPlans = [
+        {
+            name: 'Hyper-local',
+            description: 'The free base tier to get your storefront on the rotator.',
+            tagline: 'Start showing your business on MCOMQLinks',
+            bestFor: 'Businesses just getting started, testing the platform, local storefront presence',
+            monthlyPrice: 0,
+            quarterlyPrice: 0,
+            annualPrice: 0,
+            isFree: true,
+            features: ['1 Active Campaign', 'Postcode-Locked Exposure', 'Standard Support'],
+            limitations: ['No promotion of third-party products/services', 'No automatic renewal (expires after 90 days)', 'No Expo access', 'Standard visibility only'],
+            configuration: { quotas: { maxActiveCampaigns: 1, maxOffers: 5, maxLocations: 1 }, featureFlags: { priorityBoost: false, advancedAnalytics: false, customBranding: false, allowThirdPartyPromotion: false, allowAutoRollover: false, allowExpoAccess: false } },
+            isActive: true,
+            isDefault: true,
+            type: 'STANDARD',
         },
-    });
+        {
+            name: 'Nearby Expansion',
+            description: 'B2B outreach and cross-high-street partnerships.',
+            tagline: 'Grow beyond your storefront and scale your campaigns',
+            bestFor: 'Businesses ready to scale, multi-product/service sellers, partner/collaboration businesses',
+            monthlyPrice: 29.99,
+            quarterlyPrice: 79.99,
+            annualPrice: 299.99,
+            isFree: false,
+            features: ['Expansion Radius Add-ons', 'Multiple Nearby Districts', 'B2B Partnerships', 'Growth Support'],
+            limitations: ['No Expo access', 'Standard visibility only'],
+            configuration: { quotas: { maxActiveCampaigns: 5, maxOffers: 20, maxLocations: 5, allowNearbyExpansion: true }, featureFlags: { priorityBoost: true, advancedAnalytics: true, customBranding: true, allowThirdPartyPromotion: true, allowAutoRollover: true, allowExpoAccess: false } },
+            isActive: true,
+            isDefault: false,
+            type: 'STANDARD',
+        },
+        {
+            name: 'National Network',
+            description: 'Platform-wide fallback campaigns and corporate branding.',
+            tagline: 'Maximum exposure, priority access, and event promotion',
+            bestFor: 'Serious businesses, brands launching products/services, businesses that want maximum visibility',
+            monthlyPrice: 99.99,
+            quarterlyPrice: 269.99,
+            annualPrice: 999.99,
+            isFree: false,
+            features: ['CPM or Fixed Slot Access', 'Premium Override Rights', 'Platform-Wide Exposure', 'Platinum Concierge'],
+            limitations: [],
+            configuration: { quotas: { maxActiveCampaigns: 20, maxOffers: 100, maxLocations: 50, allowNearbyExpansion: true, allowNationalNetwork: true }, featureFlags: { priorityBoost: true, advancedAnalytics: true, customBranding: true, allowThirdPartyPromotion: true, allowAutoRollover: true, allowExpoAccess: true } },
+            isActive: true,
+            isDefault: false,
+            type: 'STANDARD',
+        },
+        {
+            name: 'National Trial',
+            description: 'A 14-day trial of the National Network.',
+            tagline: 'Full National Network access for 14 days free',
+            bestFor: 'New businesses wanting to try the platform risk-free',
+            monthlyPrice: 0,
+            quarterlyPrice: 0,
+            annualPrice: 0,
+            isFree: true,
+            features: ['Full National Access', 'Priority Override', '14 Days Free'],
+            limitations: ['Limited to 14 days', 'No auto rollover'],
+            configuration: { quotas: { maxActiveCampaigns: 3, maxOffers: 10, maxLocations: 3, allowNearbyExpansion: true, allowNationalNetwork: true }, featureFlags: { priorityBoost: true, advancedAnalytics: true, customBranding: true, allowThirdPartyPromotion: true, allowAutoRollover: false, allowExpoAccess: true } },
+            isActive: true,
+            isDefault: false,
+            type: 'TRIAL',
+            trialDuration: 14,
+        },
+    ] as any[];
 
-    console.log(`Created/Updated users: ${demoAdmin.email}, ${demoAgent.email}, ${demoBusiness.email}`);
+    for (const plan of seedPlans) {
+        const existing = await prisma.plan.findFirst({ where: { name: plan.name } });
+        const data = {
+            name: plan.name,
+            description: plan.description,
+            tagline: plan.tagline ?? null,
+            bestFor: plan.bestFor ?? null,
+            isFree: plan.isFree ?? false,
+            monthlyPrice: plan.isFree ? 0 : plan.monthlyPrice,
+            quarterlyPrice: plan.isFree ? 0 : plan.quarterlyPrice,
+            annualPrice: plan.isFree ? 0 : plan.annualPrice,
+            features: JSON.stringify(plan.features),
+            limitations: JSON.stringify(plan.limitations ?? []),
+            configuration: JSON.stringify(plan.configuration),
+            isActive: plan.isActive,
+            isDefault: plan.isDefault,
+            type: plan.type,
+            trialDuration: plan.trialDuration ?? null,
+        };
+        if (existing) {
+            await prisma.plan.update({ where: { id: existing.id }, data });
+        } else {
+            await prisma.plan.create({ data });
+        }
+    }
+
+    // Ensure only one default plan after (re)seeding.
+    const firstDefault = await prisma.plan.findFirst({ where: { isDefault: true } });
+    if (firstDefault) {
+        await prisma.plan.updateMany({
+            where: { isDefault: true, id: { not: firstDefault.id } },
+            data: { isDefault: false },
+        });
+    }
+
+    console.log(`Seeded ${seedPlans.length} plans.`);
 
     // 2. Clear old data
     await prisma.rotatorConfig.deleteMany();
@@ -50,22 +139,7 @@ async function main() {
     await prisma.offer.deleteMany();
     await prisma.supportMessage.deleteMany();
 
-    // 3. Create a business profile
-    const profile = await prisma.businessProfile.create({
-        data: {
-            name: "Bella's Boutique",
-            description: "A premium fashion outlet showcasing the season's latest trends.",
-            contactEmail: "hello@bellas.com",
-            contactPhone: "+44 20 7946 0123",
-            address: "88 High Street, Richmond, London TW9 1ED",
-            logoUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=200&h=200&fit=crop",
-            primaryColor: "#2563eb",
-            secondaryColor: "#f1f5f9",
-            userId: demoBusiness.id,
-        },
-    });
-
-    // 4. Create multiple offers for rotation
+    // 2. Create multiple offers for rotation
     const offer1 = await prisma.offer.create({
         data: {
             businessName: "Bella's Boutique",
@@ -113,7 +187,7 @@ async function main() {
 
     console.log(`Created 3 offers for rotation.`);
 
-    // 5. Create a demo location and its rotator config
+    // 3. Create a demo location and its rotator config
     const location = await prisma.location.create({
         data: {
             id: 'demo-mall',
@@ -132,7 +206,7 @@ async function main() {
     });
     console.log(`Created location: ${location.name} (id: ${location.id})`);
 
-    // 6. Create some initial activities
+    // 4. Create some initial activities
     await prisma.activity.createMany({
         data: [
             {
@@ -157,31 +231,6 @@ async function main() {
     });
 
     console.log(`Created initial activity records for the dashboard.`);
-
-    // 5. Create initial support messages (matching frontend mock)
-    await prisma.supportMessage.createMany({
-        data: [
-            {
-                sender: 'agent',
-                text: "Hi Isabella! I noticed your Spring Collection offer is performing great. Would you like to try boosting it for next weekend?",
-                time: "Yesterday, 2:30 PM",
-                userId: demoBusiness.id,
-            },
-            {
-                sender: 'user',
-                text: "That sounds good James! How much would a 3-day boost cost?",
-                time: "Yesterday, 4:15 PM",
-                userId: demoBusiness.id,
-            },
-            {
-                sender: 'agent',
-                text: "For your plan, it's just £49 for a Friday-Sunday peak boost. I can set it up for you if you approve!",
-                time: "Today, 9:05 AM",
-                userId: demoBusiness.id,
-            }
-        ]
-    });
-    console.log(`Created initial support messages.`);
 
     console.log('Seeding finished.');
 }

@@ -1,7 +1,7 @@
 import type { Offer } from '../types'
 
 export const fallbackOffer: Offer = {
-    id: 'fallback-001',
+    id: 'fallback-branded',
     businessName: 'MCOMQ.LINKS',
     headline: '🎉 Discover Local Deals Near You',
     description: 'Your local high street is full of amazing offers with MCOMQ. Scan again soon to see what\'s new and save money at your favourite shops!',
@@ -9,6 +9,7 @@ export const fallbackOffer: Offer = {
     imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop',
     ctaType: 'redirect',
     ctaLabel: 'Explore More',
+    leadDestination: 'https://mcomqlinks.com',
     redirectUrl: 'https://mcomqlinks.com',
     isActive: true,
     isPremium: false,
@@ -18,5 +19,7 @@ export const fallbackOffer: Offer = {
     status: 'approved',
     visibility: 'national',
     exposureType: 'national',
+    scans: 0,
+    claims: 0,
     performance: { scans: 0, claims: 0 },
 }

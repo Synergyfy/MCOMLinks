@@ -1,451 +1,674 @@
-import { useState } from 'react';
-import AdminLayout from '../../components/AdminLayout';
+import { useEffect, useMemo, useState } from 'react'
+import AdminLayout from '../../components/AdminLayout'
+import { getPlans, getPlanSchema, createPlan, updatePlan, deletePlan, type PlanSchema, type PlanInput } from '../../api/plans'
+import type { Plan } from '../../types'
 
-interface ComparisonFeature {
-    id: string;
-    label: string;
+interface PlanFormState {
+    name: string
+    description: string
+    tagline: string
+    bestFor: string
+    isFree: boolean
+    monthlyPrice: number
+    quarterlyPrice: number
+    annualPrice: number
+    features: string[]
+    limitations: string[]
+    quotas: Record<string, number | boolean>
+    featureFlags: Record<string, boolean>
+    isActive: boolean
+    isDefault: boolean
+    type: 'STANDARD' | 'TRIAL' | 'SEASONAL'
+    trialDuration: number | undefined
+    seasonId: string | undefined
+    stripeMonthlyPriceId: string
+    stripeQuarterlyPriceId: string
+    stripeAnnualPriceId: string
+    paypalMonthlyPlanId: string
+    paypalQuarterlyPlanId: string
+    paypalAnnualPlanId: string
 }
 
-interface PlanSettings {
-    id: string;
-    name: string;
-    type: string;
-    price: string;
-    period: string;
-    tagline: string;
-    color: string;
-    popular: boolean;
-    included: string[];
-    limitations: string[];
-    advantage: string;
-    bestFor: string;
-    features: Record<string, boolean | string>; // For comparison table
-}
-
-const COMPARISON_FEATURES: ComparisonFeature[] = [
-    { id: '90-day-access', label: '90-Day Access' },
-    { id: 'qr-brand-id', label: 'QR Brand ID' },
-    { id: 'storefront-campaigns', label: 'Storefront Campaigns' },
-    { id: 'national-campaigns', label: 'National Campaigns' },
-    { id: 'hyperlocal-campaigns', label: 'Hyper Local Campaigns' },
-    { id: 'nearby-campaigns', label: 'Nearby Campaigns' },
-    { id: 'third-party-promotion', label: 'Third-Party Promotion' },
-    { id: 'auto-rollover', label: 'Auto Rollover' },
-    { id: 'expo-access', label: 'Expo Access' },
-    { id: 'priority-visibility', label: 'Priority Visibility' },
-];
-
-const initialPlans: PlanSettings[] = [
-    {
-        id: 'basic',
-        name: 'BASIC',
-        type: '90-Day Access',
-        popular: false,
-        price: '90',
-        period: '90 days',
-        tagline: 'Start showing your business on MCOMQLinks',
-        color: '#22c55e',
-        included: [
-            'Claim and activate your Storefront listing',
-            'Get your QR Brand ID',
-            'Run MCOMQLinks campaigns',
-            'Appear on external storefront campaigns',
-            'Appear on internal campaigns',
-            'Participate in National campaigns',
-            'Participate in Hyper local campaigns',
-            'Use QR on VCards, posters, and campaign materials'
-        ],
-        limitations: [
-            'No promotion of third-party products/services',
-            'No automatic renewal (expires after 90 days)',
-            'No Expo access',
-            'Standard visibility only'
-        ],
-        advantage: '',
-        bestFor: 'Businesses just getting started, testing the platform, local storefront presence',
-        features: {
-            '90-day-access': true,
-            'qr-brand-id': true,
-            'storefront-campaigns': true,
-            'national-campaigns': true,
-            'hyperlocal-campaigns': true,
-            'nearby-campaigns': false,
-            'third-party-promotion': false,
-            'auto-rollover': false,
-            'expo-access': false,
-            'priority-visibility': false,
-        }
-    },
-    {
-        id: 'pro',
-        name: 'PRO',
-        type: 'Growth Mode',
-        popular: false,
-        price: '450',
-        period: '90 days',
-        tagline: 'Grow beyond your storefront and scale your campaigns',
-        color: '#2563eb',
-        included: [
-            'Everything in BASIC',
-            'Promote third-party products & services',
-            'Run Nearby campaigns',
-            'Auto 90-day rollover into next season',
-            'Access to future seasonal campaigns',
-            'Access to evergreen campaign cycles',
-            'Greater campaign flexibility',
-            'Increased exposure across network'
-        ],
+const emptyForm = (schema: PlanSchema | null): PlanFormState => {
+    const quotas: Record<string, number | boolean> = {}
+    const featureFlags: Record<string, boolean> = {}
+    schema?.quotas.forEach(q => { quotas[q.key] = q.type === 'boolean' ? false : 0 })
+    schema?.featureFlags.forEach(f => { featureFlags[f.key] = false })
+    return {
+        name: '',
+        description: '',
+        tagline: '',
+        bestFor: '',
+        isFree: false,
+        monthlyPrice: 0,
+        quarterlyPrice: 0,
+        annualPrice: 0,
+        features: [],
         limitations: [],
-        advantage: 'Your campaigns continue automatically beyond 90 days',
-        bestFor: 'Businesses ready to scale, multi-product/service sellers, partner/collaboration businesses',
-        features: {
-            '90-day-access': true,
-            'qr-brand-id': true,
-            'storefront-campaigns': true,
-            'national-campaigns': true,
-            'hyperlocal-campaigns': true,
-            'nearby-campaigns': true,
-            'third-party-promotion': true,
-            'auto-rollover': true,
-            'expo-access': 'Limited',
-            'priority-visibility': false,
-        }
-    },
-    {
-        id: 'pro-plus',
-        name: 'PRO+',
-        type: 'Full Visibility & Expo Access',
-        popular: true,
-        price: '1100',
-        period: '90 days',
-        tagline: 'Maximum exposure, priority access, and event promotion',
-        color: '#8b5cf6',
-        included: [
-            'Everything in PRO',
-            'Full access to End-of-Season Marketing Expo',
-            'Participate as seller or promoter',
-            'Priority visibility in campaigns',
-            'Higher placement in National campaigns',
-            'Higher placement in Hyper local campaigns',
-            'Premium positioning across MCOMQLinks',
-            'Stronger brand exposure'
-        ],
-        limitations: [],
-        advantage: 'You are actively promoted and highlighted across the network',
-        bestFor: 'Serious businesses, brands launching products/services, businesses that want maximum visibility',
-        features: {
-            '90-day-access': true,
-            'qr-brand-id': true,
-            'storefront-campaigns': true,
-            'national-campaigns': true,
-            'hyperlocal-campaigns': true,
-            'nearby-campaigns': true,
-            'third-party-promotion': true,
-            'auto-rollover': true,
-            'expo-access': true,
-            'priority-visibility': true,
-        }
+        quotas,
+        featureFlags,
+        isActive: true,
+        isDefault: false,
+        type: 'STANDARD',
+        trialDuration: undefined,
+        seasonId: undefined,
+        stripeMonthlyPriceId: '',
+        stripeQuarterlyPriceId: '',
+        stripeAnnualPriceId: '',
+        paypalMonthlyPlanId: '',
+        paypalQuarterlyPlanId: '',
+        paypalAnnualPlanId: '',
     }
-];
+}
+
+const toForm = (plan: Plan, schema: PlanSchema | null): PlanFormState => {
+    const base = emptyForm(schema)
+    const quotas = { ...base.quotas }
+    const featureFlags = { ...base.featureFlags }
+    schema?.quotas.forEach(q => {
+        if (plan.configuration?.quotas?.[q.key] !== undefined) quotas[q.key] = plan.configuration.quotas[q.key]
+    })
+    schema?.featureFlags.forEach(f => {
+        if (plan.configuration?.featureFlags?.[f.key] !== undefined) featureFlags[f.key] = plan.configuration.featureFlags[f.key]
+    })
+    return {
+        name: plan.name,
+        description: plan.description || '',
+        tagline: plan.tagline || '',
+        bestFor: plan.bestFor || '',
+        isFree: !!plan.isFree,
+        monthlyPrice: plan.monthlyPrice,
+        quarterlyPrice: plan.quarterlyPrice,
+        annualPrice: plan.annualPrice,
+        features: plan.features || [],
+        limitations: plan.limitations || [],
+        quotas,
+        featureFlags,
+        isActive: plan.isActive,
+        isDefault: plan.isDefault,
+        type: plan.type,
+        trialDuration: plan.trialDuration,
+        seasonId: plan.seasonId,
+        stripeMonthlyPriceId: plan.stripeMonthlyPriceId || '',
+        stripeQuarterlyPriceId: plan.stripeQuarterlyPriceId || '',
+        stripeAnnualPriceId: plan.stripeAnnualPriceId || '',
+        paypalMonthlyPlanId: plan.paypalMonthlyPlanId || '',
+        paypalQuarterlyPlanId: plan.paypalQuarterlyPlanId || '',
+        paypalAnnualPlanId: plan.paypalAnnualPlanId || '',
+    }
+}
+
+const toInput = (form: PlanFormState): PlanInput => ({
+    name: form.name,
+    description: form.description || undefined,
+    tagline: form.tagline || undefined,
+    bestFor: form.bestFor || undefined,
+    isFree: form.isFree,
+    monthlyPrice: form.isFree ? 0 : form.monthlyPrice,
+    quarterlyPrice: form.isFree ? 0 : form.quarterlyPrice,
+    annualPrice: form.isFree ? 0 : form.annualPrice,
+    features: form.features,
+    limitations: form.limitations,
+    configuration: { quotas: form.quotas, featureFlags: form.featureFlags },
+    isActive: form.isActive,
+    isDefault: form.isDefault,
+    type: form.type,
+    trialDuration: form.type === 'TRIAL' ? form.trialDuration : undefined,
+    seasonId: form.type === 'SEASONAL' ? form.seasonId : undefined,
+    stripeMonthlyPriceId: form.stripeMonthlyPriceId || undefined,
+    stripeQuarterlyPriceId: form.stripeQuarterlyPriceId || undefined,
+    stripeAnnualPriceId: form.stripeAnnualPriceId || undefined,
+    paypalMonthlyPlanId: form.paypalMonthlyPlanId || undefined,
+    paypalQuarterlyPlanId: form.paypalQuarterlyPlanId || undefined,
+    paypalAnnualPlanId: form.paypalAnnualPlanId || undefined,
+})
+
+const inputCls: React.CSSProperties = {
+    width: '100%',
+    padding: '0.85rem',
+    borderRadius: '0.75rem',
+    border: '1px solid #e2e8f0',
+    fontSize: '0.95rem',
+    background: '#fff',
+    color: '#0f172a',
+}
+const labelCls: React.CSSProperties = {
+    display: 'block',
+    fontSize: '0.8rem',
+    fontWeight: 800,
+    color: '#64748b',
+    marginBottom: '0.5rem',
+    textTransform: 'uppercase',
+}
+const cardCls: React.CSSProperties = {
+    background: '#fff',
+    padding: '2rem',
+    borderRadius: '1.5rem',
+    border: '1px solid #e2e8f0',
+    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+}
+
+function formatMoney(value: number): string {
+    return value === 0 ? 'Free' : `£${value.toFixed(2)}`
+}
 
 export default function PlanConfig() {
-    const [plans, setPlans] = useState<PlanSettings[]>(initialPlans);
-    const [selectedPlanId, setSelectedPlanId] = useState<string>(initialPlans[0].id);
-    const [isSaving, setIsSaving] = useState(false);
+    const [plans, setPlans] = useState<Plan[]>([])
+    const [schema, setSchema] = useState<PlanSchema | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+    const [saving, setSaving] = useState(false)
+    const [saved, setSaved] = useState<string | null>(null)
 
-    const selectedPlan = plans.find(p => p.id === selectedPlanId) || plans[0];
+    const [showModal, setShowModal] = useState(false)
+    const [editingId, setEditingId] = useState<string | null>(null)
+    const [form, setForm] = useState<PlanFormState>(() => emptyForm(null))
+    const [formError, setFormError] = useState<string | null>(null)
+    const [activeSection, setActiveSection] = useState<'general' | 'pricing' | 'quotas' | 'features' | 'featureflags'>('general')
 
-    const updatePlan = (updates: Partial<PlanSettings>) => {
-        setPlans(plans.map(p => p.id === selectedPlanId ? { ...p, ...updates } : p));
-    };
+    const [confirmDelete, setConfirmDelete] = useState<Plan | null>(null)
+    const [deleting, setDeleting] = useState(false)
 
-    const toggleFeature = (featureId: string) => {
-        const currentVal = selectedPlan.features[featureId];
-        let newVal: boolean | string;
-        
-        if (typeof currentVal === 'boolean') {
-            newVal = !currentVal;
-        } else {
-            newVal = true; // Default to true if it was a string and we toggle
+    const sections = useMemo(() => [
+        { id: 'general', label: 'General' },
+        { id: 'pricing', label: 'Pricing' },
+        { id: 'quotas', label: 'Quotas & Access' },
+        { id: 'features', label: 'Features' },
+        { id: 'featureflags', label: 'Feature Flags' },
+    ] as const, [])
+
+    const load = async () => {
+        setLoading(true)
+        setError(null)
+        try {
+            const [plansData, schemaData] = await Promise.all([getPlans(), getPlanSchema()])
+            setPlans(plansData || [])
+            setSchema(schemaData)
+        } catch (e: any) {
+            setError(e?.message || 'Failed to load plans')
+        } finally {
+            setLoading(false)
         }
-        
-        updatePlan({
-            features: {
-                ...selectedPlan.features,
-                [featureId]: newVal
-            }
-        });
-    };
+    }
 
-    const setFeatureValue = (featureId: string, value: string) => {
-        updatePlan({
-            features: {
-                ...selectedPlan.features,
-                [featureId]: value
-            }
-        });
-    };
+    useEffect(() => { load() }, [])
 
-    const handleSave = () => {
-        setIsSaving(true);
-        setTimeout(() => {
-            setIsSaving(false);
-            alert('Plan configuration saved successfully! Public pricing page updated.');
-        }, 1000);
-    };
+    const openCreate = () => {
+        setEditingId(null)
+        setForm(emptyForm(schema))
+        setFormError(null)
+        setActiveSection('general')
+        setShowModal(true)
+    }
 
-    const addListItem = (type: 'included' | 'limitations') => {
-        const newItem = prompt(`Add new item to ${type}:`);
-        if (newItem) {
-            updatePlan({ [type]: [...selectedPlan[type], newItem] });
+    const openEdit = (plan: Plan) => {
+        setEditingId(plan.id)
+        setForm(toForm(plan, schema))
+        setFormError(null)
+        setActiveSection('general')
+        setShowModal(true)
+    }
+
+    const updateForm = (patch: Partial<PlanFormState>) => {
+        setForm(prev => ({ ...prev, ...patch }))
+    }
+
+    const handleSave = async () => {
+        setFormError(null)
+        if (!form.name.trim()) {
+            setFormError('Plan name is required.')
+            setActiveSection('general')
+            return
         }
-    };
+        if (form.type === 'TRIAL' && (!form.trialDuration || form.trialDuration <= 0)) {
+            setFormError('TRIAL plans must have a positive trial duration (days).')
+            setActiveSection('general')
+            return
+        }
+        if (form.type === 'SEASONAL' && !form.seasonId) {
+            setFormError('SEASONAL plans require a season. Create a season under Seasonal Campaigns first.')
+            setActiveSection('general')
+            return
+        }
+        setSaving(true)
+        try {
+            const input = toInput(form)
+            if (editingId) {
+                await updatePlan(editingId, input)
+            } else {
+                await createPlan(input)
+            }
+            setShowModal(false)
+            setSaved('Plan saved successfully.')
+            setTimeout(() => setSaved(null), 3000)
+            await load()
+        } catch (e: any) {
+            setFormError(e?.message || 'Failed to save plan.')
+        } finally {
+            setSaving(false)
+        }
+    }
 
-    const removeListItem = (type: 'included' | 'limitations', index: number) => {
-        const newList = [...selectedPlan[type]];
-        newList.splice(index, 1);
-        updatePlan({ [type]: newList });
-    };
+    const handleDelete = async () => {
+        if (!confirmDelete) return
+        setDeleting(true)
+        try {
+            await deletePlan(confirmDelete.id)
+            setSaved(`Plan "${confirmDelete.name}" archived.`)
+            setTimeout(() => setSaved(null), 3000)
+            setConfirmDelete(null)
+            await load()
+        } catch (e: any) {
+            setError(e?.message || 'Failed to archive plan.')
+            setConfirmDelete(null)
+        } finally {
+            setDeleting(false)
+        }
+    }
+
+    const addFeature = () => updateForm({ features: [...form.features, ''] })
+    const updateFeature = (idx: number, value: string) => {
+        const features = [...form.features]
+        features[idx] = value
+        updateForm({ features })
+    }
+    const removeFeature = (idx: number) => {
+        updateForm({ features: form.features.filter((_, i) => i !== idx) })
+    }
+
+    const addLimitation = () => updateForm({ limitations: [...form.limitations, ''] })
+    const updateLimitation = (idx: number, value: string) => {
+        const limitations = [...form.limitations]
+        limitations[idx] = value
+        updateForm({ limitations })
+    }
+    const removeLimitation = (idx: number) => {
+        updateForm({ limitations: form.limitations.filter((_, i) => i !== idx) })
+    }
+
+    const quotaSummary = (plan: Plan): string[] => {
+        const q = plan.configuration?.quotas || {}
+        return Object.entries(q)
+            .filter(([, v]) => typeof v === 'number')
+            .slice(0, 3)
+            .map(([k, v]) => `${k}: ${v === -1 ? '∞' : v}`)
+    }
 
     return (
         <AdminLayout title="Plan Management Studio">
-            <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto', display: 'grid', gridTemplateColumns: '300px 1fr', gap: '2rem' }}>
-                
-                {/* Sidebar - Plan Selection & Preview */}
-                <aside style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                    <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
-                        <h3 style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b', marginBottom: '1rem', letterSpacing: '0.05em' }}>Select Plan to Edit</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {plans.map(plan => (
+            <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                    <div>
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>Subscription Plans</h2>
+                        <p style={{ color: '#64748b', margin: '0.25rem 0 0 0', fontSize: '0.9rem' }}>
+                            Configure what each plan allows. These plans sync with the MCOM Solutions console via <code>/api/v1/system/plans</code>.
+                        </p>
+                    </div>
+                    <button
+                        onClick={openCreate}
+                        style={{ padding: '0.75rem 1.5rem', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '0.75rem', fontWeight: 800, cursor: 'pointer', fontSize: '0.9rem' }}
+                    >
+                        + Create Plan
+                    </button>
+                </div>
+
+                {saved && (
+                    <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', padding: '1rem 1.25rem', borderRadius: '1rem', fontSize: '0.9rem', fontWeight: 700, marginBottom: '1.5rem' }}>
+                        ✓ {saved}
+                    </div>
+                )}
+                {error && (
+                    <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '1rem 1.25rem', borderRadius: '1rem', fontSize: '0.9rem', fontWeight: 700, marginBottom: '1.5rem' }}>
+                        {error}
+                    </div>
+                )}
+
+                {loading ? (
+                    <div style={{ textAlign: 'center', padding: '4rem', color: '#64748b' }}>Loading plans…</div>
+                ) : plans.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '4rem', color: '#64748b', border: '2px dashed #e2e8f0', borderRadius: '1.5rem' }}>
+                        No plans yet. Click <b>+ Create Plan</b> to add your first plan.
+                    </div>
+                ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+                        {plans.map(plan => (
+                            <div key={plan.id} style={{ ...cardCls, display: 'flex', flexDirection: 'column', gap: '0.75rem', border: plan.isDefault ? '2px solid #2563eb' : '1px solid #e2e8f0' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>{plan.name}</h3>
+                                            {plan.isDefault && <span style={{ background: '#eff6ff', color: '#1d4ed8', fontSize: '0.6rem', fontWeight: 900, padding: '2px 8px', borderRadius: '100px', border: '1px solid #bfdbfe' }}>DEFAULT</span>}
+                                            {plan.isFree && <span style={{ background: '#ecfdf5', color: '#059669', fontSize: '0.6rem', fontWeight: 900, padding: '2px 8px', borderRadius: '100px', border: '1px solid #a7f3d0' }}>FREE</span>}
+                                            {plan.type === 'TRIAL' && <span style={{ background: '#fefce8', color: '#a16207', fontSize: '0.6rem', fontWeight: 900, padding: '2px 8px', borderRadius: '100px', border: '1px solid #fde68a' }}>TRIAL</span>}
+                                            {plan.type === 'SEASONAL' && <span style={{ background: '#fdf2f8', color: '#be185d', fontSize: '0.6rem', fontWeight: 900, padding: '2px 8px', borderRadius: '100px', border: '1px solid #fbcfe8' }}>SEASONAL</span>}
+                                        </div>
+                                        <div style={{ color: plan.isActive ? '#10b981' : '#94a3b8', fontSize: '0.75rem', fontWeight: 700, marginTop: '0.25rem' }}>
+                                            {plan.isActive ? '● Active' : '○ Archived'}
+                                        </div>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        {plan.isFree ? (
+                                            <div style={{ fontWeight: 900, color: '#059669' }}>Free</div>
+                                        ) : (
+                                            <>
+                                                <div style={{ fontWeight: 900, color: '#0f172a' }}>{formatMoney(plan.monthlyPrice)}<span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>/mo</span></div>
+                                                {plan.annualPrice > 0 && <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{formatMoney(plan.annualPrice)}/yr</div>}
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {plan.description && <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem', lineHeight: '1.5' }}>{plan.description}</p>}
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                    {quotaSummary(plan).map((q, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#475569' }}>
+                                            <span style={{ textTransform: 'capitalize' }}>{q.split(':')[0].replace(/([A-Z])/g, ' $1')}</span>
+                                            <span style={{ fontWeight: 800 }}>{q.split(':')[1]}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {plan.features && plan.features.length > 0 && (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                                        {plan.features.slice(0, 4).map((f, i) => (
+                                            <span key={i} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '2px 8px', borderRadius: '100px', fontSize: '0.7rem', color: '#475569' }}>{f}</span>
+                                        ))}
+                                        {plan.features.length > 4 && <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>+{plan.features.length - 4} more</span>}
+                                    </div>
+                                )}
+
+                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+                                    <button onClick={() => openEdit(plan)} style={{ flex: 1, padding: '0.6rem', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '0.6rem', fontWeight: 800, cursor: 'pointer', fontSize: '0.8rem' }}>
+                                        Configure
+                                    </button>
+                                    <button onClick={() => setConfirmDelete(plan)} style={{ padding: '0.6rem 1rem', background: '#fff', color: '#ef4444', border: '1px solid #fecaca', borderRadius: '0.6rem', fontWeight: 800, cursor: 'pointer', fontSize: '0.8rem' }}>
+                                        Archive
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* ── Create / Edit Modal ── */}
+            {showModal && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)' }}>
+                    <div style={{ background: '#fff', borderRadius: '1.5rem', width: '100%', maxWidth: '760px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)' }}>
+                        {/* Modal header */}
+                        <div style={{ padding: '1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{editingId ? `Configure ${form.name || 'Plan'}` : 'Create New Plan'}</h3>
+                                <p style={{ margin: '0.25rem 0 0', color: '#64748b', fontSize: '0.8rem' }}>Define pricing, quotas, and what this plan can do.</p>
+                            </div>
+                            <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: '1.5rem', lineHeight: 1 }}>×</button>
+                        </div>
+
+                        {/* Section tabs */}
+                        <div style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', background: '#f8fafc' }}>
+                            {sections.map(s => (
                                 <button
-                                    key={plan.id}
-                                    onClick={() => setSelectedPlanId(plan.id)}
+                                    key={s.id}
+                                    onClick={() => setActiveSection(s.id)}
                                     style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.75rem',
-                                        padding: '1rem',
-                                        borderRadius: '0.75rem',
-                                        border: selectedPlanId === plan.id ? `2px solid ${plan.color}` : '1px solid #e2e8f0',
-                                        background: selectedPlanId === plan.id ? `${plan.color}08` : '#fff',
+                                        padding: '0.5rem 1rem',
+                                        borderRadius: '100px',
+                                        border: activeSection === s.id ? '1px solid #2563eb' : '1px solid #e2e8f0',
+                                        background: activeSection === s.id ? '#eff6ff' : '#fff',
+                                        color: activeSection === s.id ? '#1d4ed8' : '#64748b',
+                                        fontWeight: 800,
+                                        fontSize: '0.75rem',
                                         cursor: 'pointer',
-                                        textAlign: 'left',
-                                        transition: 'all 0.2s',
-                                        position: 'relative'
                                     }}
                                 >
-                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: plan.color }}></div>
-                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <span style={{ fontWeight: 800, fontSize: '0.95rem', color: selectedPlanId === plan.id ? plan.color : '#0f172a' }}>{plan.name}</span>
-                                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>£{plan.price} / 90d</span>
-                                    </div>
-                                    {plan.popular && <div style={{ position: 'absolute', top: '-8px', right: '12px', background: plan.color, color: '#fff', fontSize: '0.6rem', padding: '2px 8px', borderRadius: '100px', fontWeight: 900 }}>POPULAR</div>}
+                                    {s.label}
                                 </button>
                             ))}
                         </div>
-                    </div>
 
-                    {/* LIVE PREVIEW CARD */}
-                    <div style={{ padding: '0.5rem' }}>
-                        <h3 style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b', marginBottom: '1rem', letterSpacing: '0.05em' }}>Live Studio Preview</h3>
-                        <div style={{ 
-                            transform: 'scale(0.85)', 
-                            transformOrigin: 'top center',
-                            background: '#fff',
-                            border: `2px solid ${selectedPlan.popular ? selectedPlan.color : '#e2e8f0'}`,
-                            borderRadius: '1.5rem',
-                            padding: '1.5rem',
-                            boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)',
-                            pointerEvents: 'none',
-                            maxHeight: '600px',
-                            overflow: 'hidden',
-                            opacity: 0.9
-                        }}>
-                            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                                <span style={{ color: selectedPlan.color, fontWeight: 900, fontSize: '0.9rem', display: 'block' }}>{selectedPlan.name}</span>
-                                <span style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 600 }}>{selectedPlan.type}</span>
-                                <div style={{ margin: '0.75rem 0' }}>
-                                    <span style={{ fontSize: '2rem', fontWeight: 900 }}>£{selectedPlan.price}</span>
-                                    <span style={{ color: '#64748b', fontSize: '0.8rem' }}> / {selectedPlan.period}</span>
+                        {/* Body */}
+                        <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+                            {formError && (
+                                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '0.75rem 1rem', borderRadius: '0.75rem', fontSize: '0.8rem', fontWeight: 700, marginBottom: '1rem' }}>
+                                    {formError}
                                 </div>
-                                <p style={{ fontSize: '0.75rem', fontStyle: 'italic', margin: 0 }}>{selectedPlan.tagline}</p>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                {selectedPlan.included.slice(0, 4).map((inc, i) => (
-                                    <div key={i} style={{ fontSize: '0.7rem', display: 'flex', gap: '0.5rem' }}><span style={{ color: selectedPlan.color }}>✓</span> {inc}</div>
-                                ))}
-                                {selectedPlan.included.length > 4 && <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>+ {selectedPlan.included.length - 4} more</div>}
-                            </div>
-                        </div>
-                    </div>
+                            )}
 
-                    <div style={{ background: '#0f172a', padding: '1.5rem', borderRadius: '1.25rem', color: '#fff', marginTop: '-40px' }}>
-                        <h3 style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', color: '#94a3b8', marginBottom: '0.75rem' }}>Studio Shortcuts</h3>
-                        <p style={{ fontSize: '0.75rem', color: '#94a3b8', lineHeight: '1.6' }}>Use the matrix below to instantly toggle features across the entire MCOMQLinks network.</p>
-                        <button onClick={handleSave} disabled={isSaving} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: 'none', background: '#2563eb', color: '#fff', fontWeight: 800, cursor: 'pointer', marginTop: '1rem' }}>
-                            {isSaving ? 'Synchronizing...' : 'Save All Changes'}
-                        </button>
-                    </div>
-                </aside>
-
-                {/* Main Studio Area */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                    
-                    {/* Plan Header Info */}
-                    <section style={{ background: '#fff', padding: '2rem', borderRadius: '1.5rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
-                            <div>
-                                <h2 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>Configure {selectedPlan.name}</h2>
-                                <p style={{ color: '#64748b', margin: '0.25rem 0 0 0' }}>Modify visual elements and strategic positioning for this tier.</p>
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 700, padding: '0.5rem 1rem', background: '#f8fafc', borderRadius: '100px', border: '1px solid #e2e8f0' }}>
-                                    Popular?
-                                    <input type="checkbox" checked={selectedPlan.popular} onChange={e => updatePlan({ popular: e.target.checked })} />
-                                </label>
-
-                            </div>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.5rem' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Plan Tagline</label>
-                                <input 
-                                    type="text" 
-                                    value={selectedPlan.tagline} 
-                                    onChange={e => updatePlan({ tagline: e.target.value })}
-                                    style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: '0.95rem' }}
-                                />
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Price (£)</label>
-                                    <input 
-                                        type="text" 
-                                        value={selectedPlan.price} 
-                                        onChange={e => updatePlan({ price: e.target.value })}
-                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: '0.95rem', fontWeight: 800 }}
-                                    />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Period</label>
-                                    <input 
-                                        type="text" 
-                                        value={selectedPlan.period} 
-                                        onChange={e => updatePlan({ period: e.target.value })}
-                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: '0.95rem' }}
-                                    />
-                                </div>
-                            </div>
-                            <div style={{ gridColumn: 'span 2' }}>
-                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Best For</label>
-                                <input 
-                                    type="text" 
-                                    value={selectedPlan.bestFor} 
-                                    onChange={e => updatePlan({ bestFor: e.target.value })}
-                                    style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: '0.95rem' }}
-                                />
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Features & Limitations Lists */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                        <section style={{ background: '#fff', padding: '2rem', borderRadius: '1.5rem', border: '1px solid #e2e8f0' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0 }}>Included Features</h3>
-                                <button onClick={() => addListItem('included')} style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '4px 12px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>+ Add</button>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                {selectedPlan.included.map((item, i) => (
-                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: '#f8fafc', borderRadius: '0.5rem', fontSize: '0.85rem' }}>
-                                        <span style={{ color: '#10b981' }}>✓</span>
-                                        <span style={{ flexGrow: 1 }}>{item}</span>
-                                        <button onClick={() => removeListItem('included', i)} style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', fontSize: '1rem' }}>×</button>
+                            {activeSection === 'general' && (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                        <label style={labelCls}>Plan Name *</label>
+                                        <input style={inputCls} value={form.name} onChange={e => updateForm({ name: e.target.value })} placeholder="e.g. National Network" />
                                     </div>
-                                ))}
-                            </div>
-                        </section>
-
-                        <section style={{ background: '#fff', padding: '2rem', borderRadius: '1.5rem', border: '1px solid #e2e8f0' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0 }}>Limitations</h3>
-                                <button onClick={() => addListItem('limitations')} style={{ background: '#64748b', color: '#fff', border: 'none', padding: '4px 12px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>+ Add</button>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                {selectedPlan.limitations.map((item, i) => (
-                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: '#fff1f2', borderRadius: '0.5rem', fontSize: '0.85rem' }}>
-                                        <span style={{ color: '#ef4444' }}>×</span>
-                                        <span style={{ flexGrow: 1 }}>{item}</span>
-                                        <button onClick={() => removeListItem('limitations', i)} style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', fontSize: '1rem' }}>×</button>
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                        <label style={labelCls}>Description</label>
+                                        <textarea style={{ ...inputCls, minHeight: '70px', resize: 'vertical' }} value={form.description} onChange={e => updateForm({ description: e.target.value })} placeholder="Short summary shown on pricing pages" />
                                     </div>
-                                ))}
-                                {selectedPlan.limitations.length === 0 && <p style={{ color: '#94a3b8', fontSize: '0.85rem', fontStyle: 'italic' }}>No limitations configured for this tier.</p>}
-                            </div>
-                        </section>
-                    </div>
-
-                    {/* Comparison matrix editor */}
-                    <section style={{ background: '#fff', padding: '2rem', borderRadius: '1.5rem', border: '1px solid #e2e8f0' }}>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 900, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ background: '#2563eb', color: '#fff', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px' }}>MATRIX</span>
-                            Comparison Feature Toggles
-                        </h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
-                            {COMPARISON_FEATURES.map(feature => {
-                                const val = selectedPlan.features[feature.id];
-                                return (
-                                    <div key={feature.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid #f1f5f9', borderRadius: '1rem' }}>
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                        <label style={labelCls}>Tagline (shown on the pricing card)</label>
+                                        <input style={inputCls} value={form.tagline} onChange={e => updateForm({ tagline: e.target.value })} placeholder="e.g. Grow beyond your storefront" />
+                                    </div>
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                        <label style={labelCls}>Best For</label>
+                                        <input style={inputCls} value={form.bestFor} onChange={e => updateForm({ bestFor: e.target.value })} placeholder="e.g. Businesses ready to scale" />
+                                    </div>
+                                    <div>
+                                        <label style={labelCls}>Plan Type</label>
+                                        <select style={inputCls} value={form.type} onChange={e => updateForm({ type: e.target.value as PlanFormState['type'] })}>
+                                            <option value="STANDARD">Standard</option>
+                                            <option value="TRIAL">Trial</option>
+                                            <option value="SEASONAL">Seasonal</option>
+                                        </select>
+                                    </div>
+                                    {form.type === 'TRIAL' && (
                                         <div>
-                                            <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{feature.label}</div>
-                                            <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Toggle visibility in comparison table</div>
+                                            <label style={labelCls}>Trial Duration (days)</label>
+                                            <input style={inputCls} type="number" min={1} value={form.trialDuration ?? ''} onChange={e => updateForm({ trialDuration: e.target.value ? Number(e.target.value) : undefined })} />
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                            {typeof val === 'string' ? (
-                                                <input 
-                                                    type="text" 
-                                                    value={val} 
-                                                    onChange={e => setFeatureValue(feature.id, e.target.value)}
-                                                    style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem' }}
+                                    )}
+                                    {form.type === 'SEASONAL' && (
+                                        <div>
+                                            <label style={labelCls}>Season</label>
+                                            <input style={inputCls} value={form.seasonId || ''} onChange={e => updateForm({ seasonId: e.target.value })} placeholder="Season UUID from Seasonal Campaigns" />
+                                        </div>
+                                    )}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', paddingTop: '1rem', flexWrap: 'wrap' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer' }}>
+                                            <input type="checkbox" checked={form.isActive} onChange={e => updateForm({ isActive: e.target.checked })} />
+                                            Active
+                                        </label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer' }}>
+                                            <input type="checkbox" checked={form.isDefault} onChange={e => updateForm({ isDefault: e.target.checked })} />
+                                            Default (fallback plan)
+                                        </label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer' }}>
+                                            <input type="checkbox" checked={form.isFree} onChange={e => updateForm({ isFree: e.target.checked })} />
+                                            Free plan (prices forced to £0)
+                                        </label>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeSection === 'pricing' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                    <div style={{ background: form.isFree ? '#fefce8' : '#f8fafc', border: `1px solid ${form.isFree ? '#fde68a' : '#e2e8f0'}`, padding: '1rem 1.25rem', borderRadius: '1rem', fontSize: '0.85rem', fontWeight: 700, color: form.isFree ? '#a16207' : '#64748b' }}>
+                                        {form.isFree
+                                            ? 'This plan is marked as FREE — all prices are locked to £0.'
+                                            : 'Set the monthly, quarterly and annual prices for this plan.'}
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+                                    <div>
+                                        <label style={labelCls}>Monthly (£)</label>
+                                        <input style={inputCls} type="number" min={0} step="0.01" disabled={form.isFree} value={form.monthlyPrice} onChange={e => updateForm({ monthlyPrice: Number(e.target.value) || 0 })} />
+                                    </div>
+                                    <div>
+                                        <label style={labelCls}>Quarterly (£)</label>
+                                        <input style={inputCls} type="number" min={0} step="0.01" disabled={form.isFree} value={form.quarterlyPrice} onChange={e => updateForm({ quarterlyPrice: Number(e.target.value) || 0 })} />
+                                    </div>
+                                    <div>
+                                        <label style={labelCls}>Annual (£)</label>
+                                        <input style={inputCls} type="number" min={0} step="0.01" disabled={form.isFree} value={form.annualPrice} onChange={e => updateForm({ annualPrice: Number(e.target.value) || 0 })} />
+                                    </div>
+                                    <div>
+                                        <label style={labelCls}>Stripe Monthly Price ID</label>
+                                        <input style={inputCls} value={form.stripeMonthlyPriceId} onChange={e => updateForm({ stripeMonthlyPriceId: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label style={labelCls}>Stripe Quarterly Price ID</label>
+                                        <input style={inputCls} value={form.stripeQuarterlyPriceId} onChange={e => updateForm({ stripeQuarterlyPriceId: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label style={labelCls}>Stripe Annual Price ID</label>
+                                        <input style={inputCls} value={form.stripeAnnualPriceId} onChange={e => updateForm({ stripeAnnualPriceId: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label style={labelCls}>PayPal Monthly Plan ID</label>
+                                        <input style={inputCls} value={form.paypalMonthlyPlanId} onChange={e => updateForm({ paypalMonthlyPlanId: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label style={labelCls}>PayPal Quarterly Plan ID</label>
+                                        <input style={inputCls} value={form.paypalQuarterlyPlanId} onChange={e => updateForm({ paypalQuarterlyPlanId: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label style={labelCls}>PayPal Annual Plan ID</label>
+                                        <input style={inputCls} value={form.paypalAnnualPlanId} onChange={e => updateForm({ paypalAnnualPlanId: e.target.value })} />
+                                    </div>
+                                </div>
+                                </div>
+                            )}
+
+                            {activeSection === 'quotas' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    {(schema?.quotas || []).map(q => (
+                                        <div key={q.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid #f1f5f9', borderRadius: '1rem' }}>
+                                            <div>
+                                                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>{q.label}</div>
+                                                <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontFamily: 'monospace' }}>{q.key}</div>
+                                            </div>
+                                            {q.type === 'number' ? (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <input
+                                                        type="number"
+                                                        min={-1}
+                                                        value={Number(form.quotas[q.key] ?? 0)}
+                                                        onChange={e => updateForm({ quotas: { ...form.quotas, [q.key]: Number(e.target.value) || 0 } })}
+                                                        style={{ width: '90px', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 800 }}
+                                                    />
+                                                    <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{q.unlimited ? '(-1 = unlimited)' : ''}</span>
+                                                </div>
+                                            ) : (
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
+                                                    <input type="checkbox" checked={!!form.quotas[q.key]} onChange={e => updateForm({ quotas: { ...form.quotas, [q.key]: e.target.checked } })} />
+                                                    Enabled
+                                                </label>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {(!schema || schema.quotas.length === 0) && <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>No quota fields configured in the plan schema.</p>}
+                                </div>
+                            )}
+
+                            {activeSection === 'features' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <label style={labelCls}>Included Feature Bullets</label>
+                                            <button onClick={addFeature} style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '0.4rem 0.9rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}>+ Add</button>
+                                        </div>
+                                        {form.features.map((f, i) => (
+                                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <input style={inputCls} value={f} onChange={e => updateFeature(i, e.target.value)} placeholder={`e.g. Up to ${20 * (i + 1)} active campaigns`} />
+                                                <button onClick={() => removeFeature(i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.1rem' }}>×</button>
+                                            </div>
+                                        ))}
+                                        {form.features.length === 0 && <p style={{ color: '#94a3b8', fontSize: '0.85rem', fontStyle: 'italic' }}>No features listed yet.</p>}
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <label style={labelCls}>Limitations (shown on the pricing card)</label>
+                                            <button onClick={addLimitation} style={{ background: '#64748b', color: '#fff', border: 'none', padding: '0.4rem 0.9rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}>+ Add</button>
+                                        </div>
+                                        {form.limitations.map((f, i) => (
+                                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <input style={inputCls} value={f} onChange={e => updateLimitation(i, e.target.value)} placeholder="e.g. No automatic renewal (expires after 90 days)" />
+                                                <button onClick={() => removeLimitation(i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.1rem' }}>×</button>
+                                            </div>
+                                        ))}
+                                        {form.limitations.length === 0 && <p style={{ color: '#94a3b8', fontSize: '0.85rem', fontStyle: 'italic' }}>No limitations configured.</p>}
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeSection === 'featureflags' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    {(schema?.featureFlags || []).map(f => (
+                                        <div key={f.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid #f1f5f9', borderRadius: '1rem' }}>
+                                            <div>
+                                                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>{f.label}</div>
+                                                <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontFamily: 'monospace' }}>{f.key}</div>
+                                            </div>
+                                            <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '22px', cursor: 'pointer' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={!!form.featureFlags[f.key]}
+                                                    onChange={e => updateForm({ featureFlags: { ...form.featureFlags, [f.key]: e.target.checked } })}
+                                                    style={{ opacity: 0, width: 0, height: 0 }}
                                                 />
-                                            ) : null}
-                                            <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '22px' }}>
-                                                <input 
-                                                    type="checkbox" 
-                                                    checked={!!val} 
-                                                    onChange={() => toggleFeature(feature.id)}
-                                                    style={{ opacity: 0, width: 0, height: 0 }} 
-                                                />
-                                                <span style={{ 
-                                                    position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, 
-                                                    backgroundColor: !!val ? selectedPlan.color : '#cbd5e1', 
-                                                    transition: '.4s', borderRadius: '34px' 
+                                                <span style={{
+                                                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: '34px',
+                                                    backgroundColor: form.featureFlags[f.key] ? '#2563eb' : '#cbd5e1', transition: '.4s',
                                                 }}>
-                                                    <span style={{ 
-                                                        position: 'absolute', content: '""', height: '16px', width: '16px', left: !!val ? '24px' : '4px', bottom: '3px', 
-                                                        backgroundColor: 'white', transition: '.4s', borderRadius: '50%' 
-                                                    }}></span>
+                                                    <span style={{
+                                                        position: 'absolute', height: '16px', width: '16px', left: form.featureFlags[f.key] ? '24px' : '4px', bottom: '3px',
+                                                        backgroundColor: 'white', transition: '.4s', borderRadius: '50%',
+                                                    }} />
                                                 </span>
                                             </label>
                                         </div>
-                                    </div>
-                                );
-                            })}
+                                    ))}
+                                    {(!schema || schema.featureFlags.length === 0) && <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>No feature flags configured in the plan schema.</p>}
+                                </div>
+                            )}
                         </div>
-                    </section>
 
-                    {/* Advantage Box */}
-                    <section style={{ background: '#fff', padding: '2rem', borderRadius: '1.5rem', border: '1px solid #e2e8f0' }}>
-                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Key Advantage (Optional)</label>
-                        <textarea 
-                            value={selectedPlan.advantage} 
-                            onChange={e => updatePlan({ advantage: e.target.value })}
-                            placeholder="e.g. Your campaigns continue automatically beyond 90 days"
-                            style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: '0.95rem', minHeight: '80px', resize: 'vertical' }}
-                        />
-                    </section>
+                        {/* Footer */}
+                        <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', background: '#f8fafc' }}>
+                            <button onClick={() => setShowModal(false)} style={{ padding: '0.75rem 1.25rem', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '0.75rem', fontWeight: 800, cursor: 'pointer', color: '#475569' }}>
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSave}
+                                disabled={saving}
+                                style={{ padding: '0.75rem 1.5rem', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '0.75rem', fontWeight: 800, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}
+                            >
+                                {saving ? 'Saving…' : editingId ? 'Save Changes' : 'Create Plan'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            )}
+
+            {/* ── Delete Confirm Modal ── */}
+            {confirmDelete && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.6)' }}>
+                    <div style={{ background: '#fff', borderRadius: '1.25rem', padding: '2rem', width: '100%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)' }}>
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>Archive "{confirmDelete.name}"?</h3>
+                        <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: '1.5', marginTop: '0.75rem' }}>
+                            The plan will be deactivated and hidden from purchase. Historical records are preserved.
+                        </p>
+                        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                            <button onClick={() => setConfirmDelete(null)} style={{ padding: '0.6rem 1.25rem', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '0.75rem', fontWeight: 800, cursor: 'pointer', color: '#475569' }}>
+                                Cancel
+                            </button>
+                            <button onClick={handleDelete} disabled={deleting} style={{ padding: '0.6rem 1.25rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '0.75rem', fontWeight: 800, cursor: 'pointer', opacity: deleting ? 0.6 : 1 }}>
+                                {deleting ? 'Archiving…' : 'Archive Plan'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </AdminLayout>
-    );
+    )
 }

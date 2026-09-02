@@ -1,38 +1,67 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import AgentLayout from '../../components/AgentLayout'
-import { mockCommLogs, type CommLog } from '../../mock/agents'
+import { api } from '../../api/apiClient'
+import { mockCommLogs } from '../../mock/agents'
 
 export default function BusinessCommLogPage() {
     const { id } = useParams()
-    const [logs, setLogs] = useState<CommLog[]>(mockCommLogs.filter(l => l.businessId === id))
+    const [logs, setLogs] = useState<any[]>([])
     const [newNote, setNewNote] = useState('')
     const [noteType, setNoteType] = useState<'call' | 'meeting' | 'email'>('call')
+    const [loading, setLoading] = useState(true)
 
-    // Simulate business data fetching
-    const businessName = id === 'biz-001' ? "Bella's Boutique" :
-        id === 'biz-002' ? "The Daily Grind" :
-            id === 'biz-003' ? "FitLife Gym" : "Business Portfolio"
+    const fetchLogs = () => {
+        if (!id) return;
+        setLoading(true);
+        api.get<any[]>(`/agent/comm/${id}`)
+            .then(data => {
+                setLogs(data || []);
+                setLoading(false);
+            })
+            .catch(() => {
+                setLogs(mockCommLogs.filter(l => l.businessId === id));
+                setLoading(false);
+            });
+    };
 
-    const handleAddLog = (e: React.FormEvent) => {
+    useEffect(() => {
+        fetchLogs();
+    }, [id]);
+
+    const handleAddLog = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!newNote.trim()) return
+        if (!newNote.trim() || !id) return
 
-        const newLog: CommLog = {
-            id: `log-${Date.now()}`,
-            businessId: id || '',
-            date: new Date().toISOString(),
-            note: newNote,
-            type: noteType
+        try {
+            await api.post('/agent/comm', {
+                businessId: id,
+                notes: newNote,
+                type: noteType,
+            });
+            setNewNote('');
+            fetchLogs();
+        } catch (err: any) {
+            const fallback: any = {
+                id: `log-${Date.now()}`,
+                businessId: id,
+                createdAt: new Date().toISOString(),
+                notes: newNote,
+                type: noteType
+            };
+            setLogs([fallback, ...logs]);
+            setNewNote('');
         }
-
-        setLogs([newLog, ...logs])
-        setNewNote('')
     }
 
+
     return (
-        <AgentLayout title={`Communication History: ${businessName}`}>
-            <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+        <AgentLayout title={`Communication History: Business #${id || ''}`}>
+            {loading ? (
+                <div style={{ textAlign: 'center', padding: '4rem', color: '#64748b' }}>Loading relationship timeline...</div>
+            ) : (
+                <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+
 
                 {/* Back Link */}
                 <Link to="/agent/portfolio" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', textDecoration: 'none', fontSize: '0.9rem', marginBottom: '2rem', fontWeight: 600 }}>
@@ -108,12 +137,13 @@ export default function BusinessCommLogPage() {
                                                 {log.type} entry
                                             </span>
                                             <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>
-                                                {new Date(log.date).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                {new Date(log.createdAt || log.date || Date.now()).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}
                                             </span>
                                         </div>
                                         <p style={{ margin: 0, fontSize: '0.95rem', color: '#0a0a0a', lineHeight: '1.6' }}>
-                                            {log.note}
+                                            {log.notes || log.note}
                                         </p>
+
                                     </div>
                                 </div>
                             ))}
@@ -128,6 +158,8 @@ export default function BusinessCommLogPage() {
                 </div>
 
             </div>
+            )}
         </AgentLayout>
     )
 }
+

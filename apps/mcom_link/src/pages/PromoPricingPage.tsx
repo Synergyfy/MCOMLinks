@@ -56,13 +56,13 @@ const PromoPricingPage: React.FC = () => {
             ))}
             <div className="mobile-auth">
               <Link to="/login" className="btn-ghost" onClick={() => setIsMenuOpen(false)}>Sign In</Link>
-              <Link to="/signup" className="btn-premium" onClick={() => setIsMenuOpen(false)}>Get Started</Link>
+              <Link to="/login" className="btn-premium" onClick={() => setIsMenuOpen(false)}>Get Started</Link>
             </div>
           </div>
           
           <div className="desktop-auth">
             <Link to="/login" className="btn-ghost" style={{ textDecoration: 'none' }}>Sign In</Link>
-            <Link to="/signup" className="btn-premium" style={{ textDecoration: 'none' }}>
+            <Link to="/login" className="btn-premium" style={{ textDecoration: 'none' }}>
               Get Started <ArrowRight />
             </Link>
           </div>
@@ -91,7 +91,7 @@ const PromoPricingPage: React.FC = () => {
             />
             
             <div className="hero-ctas" style={{ justifyContent: 'center', marginTop: '4rem' }}>
-              <Link to="/signup" className="btn-premium" style={{ padding: '1.2rem 3rem', fontSize: '1.2rem', textDecoration: 'none' }}>
+              <Link to="/login" className="btn-premium" style={{ padding: '1.2rem 3rem', fontSize: '1.2rem', textDecoration: 'none' }}>
                 {promo.homepagePromoCTAText} <ArrowRight />
               </Link>
             </div>

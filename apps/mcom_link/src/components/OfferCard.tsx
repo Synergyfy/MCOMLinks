@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { api } from '../api/apiClient'
 import type { Offer } from '../types'
@@ -9,22 +9,26 @@ interface OfferCardProps {
 
 export default function OfferCard({ offer }: Readonly<OfferCardProps>) {
     const { locationId } = useParams<{ locationId: string }>()
-    const [secondsViewed, setSecondsViewed] = useState(0)
+    const secondsViewed = useRef(0)
 
-    // Track engagement time (STEP 8 - Deep Insights)
+    // Track engagement time (STEP 8 - Deep Insights).
+    // Log the total duration once on unmount; never re-subscribe per second.
     useEffect(() => {
         const timer = setInterval(() => {
-            setSecondsViewed(prev => prev + 1)
+            secondsViewed.current += 1
         }, 1000)
 
         return () => {
             clearInterval(timer)
-            // Log total duration on unmount
-            if (secondsViewed > 2) {
-                api.get(`/r/${locationId || 'unknown'}/track/${offer.id}/engagement?duration=${secondsViewed}`).catch(() => { })
+            if (secondsViewed.current > 2) {
+                api.get(`/r/${locationId || 'unknown'}/track/${offer.id}/engagement?duration=${secondsViewed.current}`).catch(() => { })
             }
         }
-    }, [offer.id, locationId, secondsViewed])
+    }, [offer.id, locationId])
+
+    // Ghost Lead Profiling: a stable, deterministic count (no Math.random during
+// render) so it does not flicker on every re-render.
+const lookingNow = 2 + (offer.businessName.length % 4)
 
     const handleIntent = (type: 'directions' | 'call_click') => {
         api.get(`/r/${locationId || 'unknown'}/track/${offer.id}/${type}`).catch(() => { })
@@ -67,7 +71,7 @@ export default function OfferCard({ offer }: Readonly<OfferCardProps>) {
                     {/* Ghost Lead Profiling: Show how long they've been looking */}
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <div className="sf-live-indicator">
-                            <span className="sf-dot"></span> {Math.floor(Math.random() * 5) + 2} Looking Now
+                            <span className="sf-dot"></span> {lookingNow} Looking Now
                         </div>
                     </div>
                 </div>

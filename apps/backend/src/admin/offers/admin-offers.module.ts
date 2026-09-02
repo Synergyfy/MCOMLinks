@@ -4,9 +4,9 @@ import { AdminOffersController } from './admin-offers.controller';
 import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
-    imports: [PrismaModule],
-    providers: [AdminOffersService],
-    controllers: [AdminOffersController],
-    exports: [AdminOffersService],
+  imports: [PrismaModule],
+  providers: [AdminOffersService],
+  controllers: [AdminOffersController],
+  exports: [AdminOffersService],
 })
-export class AdminOffersModule { }
+export class AdminOffersModule {}

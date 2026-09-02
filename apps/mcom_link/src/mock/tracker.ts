@@ -20,7 +20,7 @@ const getStoredEvents = (): TrackingEvent[] => {
     return stored ? JSON.parse(stored) : []
 }
 
-let eventLog: TrackingEvent[] = getStoredEvents()
+const eventLog: TrackingEvent[] = getStoredEvents()
 
 let eventCounter = eventLog.length
 

@@ -3,16 +3,30 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AgentService {
-    constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
-    async getAgentStats() {
-        // Mocked stats for the agent's portfolio
-        return {
-            totalBusinesses: 5,
-            activeOffers: 12,
-            totalScans: 850,
-            totalClaims: 120,
-            pendingApprovals: 3
-        };
-    }
+  async getAgentStats() {
+    const totalBusinesses = await this.prisma.businessProfile.count();
+    const activeOffers = await this.prisma.offer.count({
+      where: { status: 'approved' },
+    });
+    const totalScans = await this.prisma.activity.count({
+      where: { type: 'SCAN' },
+    });
+    const totalClaims = await this.prisma.activity.count({
+      where: { type: 'CLAIM' },
+    });
+    const pendingApprovals = await this.prisma.offer.count({
+      where: { status: 'submitted' },
+    });
+
+    return {
+      totalBusinesses,
+      activeOffers,
+      totalScans,
+      totalClaims,
+      pendingApprovals,
+    };
+  }
+
 }

@@ -128,8 +128,27 @@ export default function OffersPage() {
                 payload.leadDestination = newOffer.redemptionInstructions;
             }
 
+            // Client-side validation matching backend DTO rules
+            const start = new Date(newOffer.startDate || Date.now());
+            const end = new Date(newOffer.endDate || Date.now());
+            if (end <= start) {
+                alert("Validation Error: End Date must be after Start Date.");
+                return;
+            }
+
+
+            if ((newOffer.exposureType === 'hyperlocal' || newOffer.exposureType === 'nearby') && newOffer.targetPostcode) {
+                const postcodeClean = newOffer.targetPostcode.trim().toUpperCase();
+                const isValidUkPostcode = /^[A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2}$/i.test(postcodeClean);
+                if (!isValidUkPostcode) {
+                    alert("Validation Error: Please enter a valid UK postcode format (e.g. W1F 0AA).");
+                    return;
+                }
+            }
+
             // Submit for approval
             await api.post('/dashboard/offers', payload)
+
 
             alert("Offer submitted successfully! It is now pending approval from our administration team. Once approved, it will automatically go live in the rotator.")
 
@@ -259,10 +278,10 @@ export default function OffersPage() {
                                     <td>
                                         <div style={{ display: 'flex', gap: '1rem' }}>
                                             <div title="Scans">
-                                                <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>S:</span> {offer.performance.scans}
+                                                <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>S:</span> {offer.scans ?? offer.performance?.scans ?? 0}
                                             </div>
                                             <div title="Claims">
-                                                <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>C:</span> {offer.performance.claims}
+                                                <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>C:</span> {offer.claims ?? offer.performance?.claims ?? 0}
                                             </div>
                                         </div>
                                     </td>
@@ -334,11 +353,11 @@ export default function OffersPage() {
                             </div>
                             <div>
                                 <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Scans</div>
-                                <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{offer.performance.scans}</div>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{offer.scans ?? offer.performance?.scans ?? 0}</div>
                             </div>
                             <div>
                                 <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Claims</div>
-                                <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{offer.performance.claims}</div>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{offer.claims ?? offer.performance?.claims ?? 0}</div>
                             </div>
                         </div>
 

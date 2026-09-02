@@ -7,6 +7,25 @@ dist
 .next
 .turbo
 out
+*.tsbuildinfo
+dev-dist
+dist-ssr
+
+# Databases & seeds
+*.db
+*.sqlite
+*.sqlite3
+prisma/seed.js
+prisma/seed.js.map
+prisma/seed.d.ts
+
+# Logs & debug dumps
+*.log
+*.bak
+*_output.txt
+dist_*.txt
+*_search.txt
+validate.txt
 
 # IDE
 .vscode
@@ -20,3 +39,6 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Opencode plans (local-only)
+.opencode/

@@ -4,9 +4,9 @@ import { AgentPerformanceService } from './performance.service';
 import { PrismaModule } from '../../../prisma/prisma.module';
 
 @Module({
-    imports: [PrismaModule],
-    controllers: [AgentPerformanceController],
-    providers: [AgentPerformanceService],
-    exports: [AgentPerformanceService],
+  imports: [PrismaModule],
+  controllers: [AgentPerformanceController],
+  providers: [AgentPerformanceService],
+  exports: [AgentPerformanceService],
 })
-export class AgentPerformanceModule { }
+export class AgentPerformanceModule {}

@@ -1,58 +1,84 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { BusinessSettingsDto, UpdateBusinessSettingsDto } from './dto/business-settings.dto';
+import {
+  BusinessSettingsDto,
+  UpdateBusinessSettingsDto,
+} from './dto/business-settings.dto';
 
 @Injectable()
 export class SettingsService {
-    constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
-    async getSettings(userId: string): Promise<BusinessSettingsDto> {
-        const profile = await this.prisma.businessProfile.findUnique({
-            where: { userId }
-        });
+  async getSettings(userId: string): Promise<BusinessSettingsDto> {
+    let profile = await this.prisma.businessProfile.findUnique({
+      where: { userId },
+    });
 
-        if (!profile) {
-            // Return defaults instead of 404 for a better UX
-            const user = await this.prisma.user.findUnique({ where: { id: userId } });
-            return {
-                id: 'temp',
-                name: user?.name || 'My Business',
-                description: 'Business description',
-                logoUrl: null,
-                contactEmail: user?.email || 'contact@example.com',
-                contactPhone: null,
-                address: null,
-                primaryColor: '#2563eb',
-                secondaryColor: '#f8fafc',
-                plan: 'None',
-                subscriptionStatus: 'pending',
-            } as BusinessSettingsDto;
-        }
+    if (!profile) {
+      const user = await this.prisma.user.findUnique({ where: { id: userId } });
+      let currentPerms: Record<string, any> = {};
+      try {
+        currentPerms = JSON.parse(user?.mcomPermissions || '{}');
+      } catch {}
 
-        return profile;
+      const hasLinksAccess = currentPerms.canAccess_links === true;
+      const defaultPlan = await this.prisma.plan.findFirst({
+        where: hasLinksAccess ? { isDefault: false } : { isDefault: true },
+      });
+
+      profile = await this.prisma.businessProfile.create({
+        data: {
+          userId,
+          name: user?.name || 'My Business',
+          description: 'Business description',
+          logoUrl: null,
+          contactEmail: user?.email || 'contact@example.com',
+          contactPhone: null,
+          address: null,
+          primaryColor: '#2563eb',
+          secondaryColor: '#f8fafc',
+          plan: hasLinksAccess ? (defaultPlan?.name || 'Active') : 'None',
+          subscriptionStatus: hasLinksAccess ? 'active' : 'pending',
+          activePlanId: defaultPlan?.id || null,
+        },
+      });
     }
 
-    async updateSettings(userId: string, dto: UpdateBusinessSettingsDto): Promise<BusinessSettingsDto> {
-        const profile = await this.prisma.businessProfile.findUnique({
-            where: { userId }
-        });
- 
-        if (!profile) {
-            // Create new profile if it doesn't exist (Upsert)
-            return this.prisma.businessProfile.create({
-                data: {
-                    ...dto,
-                    userId,
-                    name: dto.name || 'My Business',
-                    description: dto.description || 'Business description',
-                    contactEmail: dto.contactEmail || 'contact@example.com',
-                } as any, // Cast to any because Prisma expects specific types
-            });
-        }
- 
-        return this.prisma.businessProfile.update({
-            where: { id: profile.id },
-            data: dto,
-        });
+    return profile;
+  }
+
+  async updateSettings(
+    userId: string,
+    dto: UpdateBusinessSettingsDto,
+  ): Promise<BusinessSettingsDto> {
+    const profile = await this.prisma.businessProfile.findUnique({
+      where: { userId },
+    });
+
+    // Billing fields are controlled by admin/governance and the MCOM webhook
+    // lifecycle, never by the business owner directly.
+    const {
+      plan: _plan,
+      subscriptionStatus: _subscriptionStatus,
+      ...safeDto
+    } = dto;
+
+    if (!profile) {
+      // Create new profile if it doesn't exist (Upsert)
+      return this.prisma.businessProfile.create({
+        data: {
+          ...(safeDto as any),
+          userId,
+          name: safeDto.name || 'My Business',
+          description: safeDto.description || 'Business description',
+          contactEmail: safeDto.contactEmail || 'contact@example.com',
+        }, // Cast to any because Prisma expects specific types
+      });
     }
+
+    return this.prisma.businessProfile.update({
+      where: { id: profile.id },
+      data: safeDto as any,
+    });
+  }
 }
